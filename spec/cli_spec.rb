@@ -14,7 +14,7 @@
 require 'spec_helper'
 require 'stringio'
 require 'cli'
-require 'stub_uaa'
+require 'stub/uaa'
 require 'pp'
 
 # Example config to run these tests against a real UAA rather than the stub server
@@ -27,7 +27,7 @@ module CF::UAA
 describe Cli do
 
   before :all do
-    #Util.default_logger(:trace)
+    Util.default_logger(:trace)
     Cli.configure("", nil, StringIO.new)
     @client_id = ENV["UAA_CLIENT_ID"] || "admin"
     @client_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
@@ -113,7 +113,7 @@ describe Cli do
   end
 
   it "should check password strength" do
-    Cli.run("password strength PaSsW0rd").should_not be_nil
+    Cli.run("password strength PaSsW0rd -t").should_not be_nil
     Cli.output.string.should match "score"
     Cli.output.string.should match "requiredScore"
   end

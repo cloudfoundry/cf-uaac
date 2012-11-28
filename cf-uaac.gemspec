@@ -13,18 +13,18 @@
 #
 
 $:.push File.expand_path("../lib", __FILE__)
-require "uaa/version"
+require "cli/version"
 
 Gem::Specification.new do |s|
-  s.name        = "cf-uaa-client"
-  s.version     = CF::UAA::VERSION
+  s.name        = "cf-uaac"
+  s.version     = CF::UAA::CLI_VERSION
   s.authors     = ["Dave Syer", "Dale Olds", "Joel D'sa", "Vidya Valmikinathan", "Luke Taylor"]
   s.email       = ["dsyer@vmware.com", "olds@vmware.com", "jdsa@vmware.com", "vidya@vmware.com", "ltaylor@vmware.com"]
   s.homepage    = "https://github.com/cloudfoundry/uaa/tree/master/gem"
-  s.summary     = %q{Client and resource library for CloudFoundry UAA}
-  s.description = %q{Client library and command line tools for interacting with the CloudFoundry User Account and Authorization (UAA) server.  The UAA is an OAuth2 Authorization Server so it can be used by webapps and command line apps to obtain access tokens to act on behalf of users.  The tokens can then be used to access protected resources in a Resource Server.  This library can be used by clients (as a convenient wrapper for mainstream oauth gems) or by resource servers.}
+  s.summary     = %q{Command line interface for CloudFoundry UAA}
+  s.description = %q{Client command line tools for interacting with the CloudFoundry User Account and Authorization (UAA) server.  The UAA is an OAuth2 Authorization Server so it can be used by webapps and command line apps to obtain access tokens to act on behalf of users.  The tokens can then be used to access protected resources in a Resource Server.  This library can be used by clients (as a convenient wrapper for mainstream oauth gems) or by resource servers.}
 
-  s.rubyforge_project = "cf-uaa-client"
+  s.rubyforge_project = "cf-uaac"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
@@ -39,8 +39,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency "simplecov-rcov"
   s.add_development_dependency "ci_reporter"
   s.add_runtime_dependency "highline"
-  s.add_runtime_dependency "rest-client"
-  s.add_runtime_dependency "yajl-ruby"
+  s.add_runtime_dependency "cf-uaa-lib", ">= 1.3.0.snapshot"
+  s.add_runtime_dependency "multi_json"
   s.add_runtime_dependency "eventmachine"
   s.add_runtime_dependency "launchy"
   s.add_runtime_dependency "em-http-request", ">= 1.0.0.beta.3"

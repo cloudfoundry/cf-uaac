@@ -13,8 +13,8 @@
 
 require 'spec_helper'
 require 'uaa'
-require 'cli/base'
-require 'stub_uaa'
+require 'cli/version'
+require 'stub/uaa'
 require 'pp'
 
 # Example config for integration tests with defaults:
@@ -45,7 +45,7 @@ describe "UAA Integration:" do
   after :all do @stub_uaa.stop if @stub_uaa end
 
   it "should report the uaa client version" do
-    VERSION.should =~ /\d.\d.\d/
+    CLI_VERSION.should =~ /\d.\d.\d/
   end
 
   it "makes sure the server is there by getting the prompts for an implicit grant" do
@@ -55,48 +55,47 @@ describe "UAA Integration:" do
 
   it "configures the admin client for the rest of the tests" do
     toki = TokenIssuer.new(@target, @client_id, @client_secret)
-    cr = ClientReg.new(@target, toki.client_credentials_grant.auth_header)
-    admin_reg = cr.get(@client_id)
-    admin_reg[:authorities] = admin_reg[:authorities] | ["scim.read", "scim.write", "password.write"]
-    admin_reg[:authorized_grant_types] = admin_reg[:authorized_grant_types] | ["authorization_code"]
-    cr.update(admin_reg)
-    admin_reg = cr.get(@client_id)
-    admin_reg[:authorities].should include("scim.read")
-    admin_reg[:authorities].should include("scim.write")
-    admin_reg[:authorized_grant_types].should include("authorization_code")
+    scim = Scim.new(@target, toki.client_credentials_grant.auth_header)
+    admin_reg = scim.get(:client, @client_id)
+    admin_reg['authorities'] = admin_reg['authorities'] | ['scim.read', 'scim.write', 'password.write']
+    admin_reg['authorized_grant_types'] = admin_reg['authorized_grant_types'] | ['authorization_code']
+    scim.put(:client, admin_reg)
+    admin_reg = scim.get(:client, @client_id)
+    admin_reg['authorities'].should include('scim.read')
+    admin_reg['authorities'].should include('scim.write')
+    admin_reg['authorized_grant_types'].should include('authorization_code')
   end
 
   context "with a client credentials grant," do
 
     before :all do
       toki = TokenIssuer.new(@target, @client_id, @client_secret)
-      @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
+      @user_acct = Scim.new(@target, toki.client_credentials_grant.auth_header)
     end
 
     it "creates a user" do
-      usr = @user_acct.add(userName: @username, password: "sam's password",
+      usr = @user_acct.add(:user, userName: @username, password: "sam's password",
           emails: [{value: "sam@example.com"}], name: {givenName: "none", familyName: "none"})
-      @user_id.replace usr[:id]
-      usr[:id].should be
+      @user_id.replace usr["id"]
+      usr["id"].should be
     end
 
     it "finds the user by name" do
-      @user_acct.user_id_from_name(@username).should == @user_id
+      @user_acct.id(:user, @username).should == @user_id
     end
 
     it "gets the user by id" do
-      user_info = @user_acct.get(@user_id)
-      user_info[:id].should == @user_id
-      # TODO: fix this after uaa attribute names are no longer case sensitive
-      user_info[:username] ? user_info[:username].should == @username : user_info[:userName].should == @username
+      user_info = @user_acct.get(:user, @user_id)
+      user_info["id"].should == @user_id
+      user_info["username"].should == @username
     end
 
     it "changes the user's password by name" do
-      @user_acct.change_password_by_name(@username, "newpassword")[:status].should == "ok"
+      @user_acct.change_password(@user_acct.id(:user, @username), "newpassword")["status"].should == "ok"
     end
 
     it "lists all users" do
-      user_info = @user_acct.query
+      user_info = @user_acct.query(:user)
       user_info.should_not be_nil
     end
 
@@ -110,17 +109,17 @@ describe "UAA Integration:" do
 
     it "verifies that prompts for the implicit grant are username and password" do
       prompts = @toki.prompts
-      prompts[:username].should_not be_nil
-      prompts[:password].should_not be_nil
+      prompts["username"].should_not be_nil
+      prompts["password"].should_not be_nil
     end
 
     it "gets a token by an implicit grant" do
       token = @toki.implicit_grant_with_creds(username: @username, password: "newpassword")
-      token.info[:access_token].should be
+      token.info["access_token"].should be
       info = Misc.whoami(@target, token.auth_header)
-      info[:user_name].should == @username
-      contents = TokenCoder.decode(token.info[:access_token], nil, nil, false)
-      contents[:user_name].should == @username
+      info["user_name"].should == @username
+      contents = TokenCoder.decode(token.info["access_token"], nil, nil, false)
+      contents["user_name"].should == @username
     end
   end
 
@@ -134,12 +133,12 @@ describe "UAA Integration:" do
         uri_parts = toki.autologin_uri(redir_uri, {username: @username, password: "newpassword"}).split('?')
         uri_parts[0].should == "#{logn}/oauth/authorize"
         params = Util.decode_form_to_hash(uri_parts[1])
-        params[:response_type].should == "code"
-        params[:client_id].should == @client_id
-        params[:scope].should be_nil
-        params[:redirect_uri].should == redir_uri
-        params[:state].should_not be_nil
-        params[:code].should_not be_nil
+        params["response_type"].should == "code"
+        params["client_id"].should == @client_id
+        params["scope"].should be_nil
+        params["redirect_uri"].should == redir_uri
+        params["state"].should_not be_nil
+        params["code"].should_not be_nil
       end
     end
 
@@ -149,16 +148,16 @@ describe "UAA Integration:" do
 
     before :all do
       toki = TokenIssuer.new(@target, @client_id, @client_secret)
-      @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
+      @user_acct = Scim.new(@target, toki.client_credentials_grant.auth_header)
     end
 
     it "deletes the user by name" do
-      @user_acct.delete_by_name(@username)
-      expect { @user_acct.get_by_name(@username) }.to raise_exception(NotFound)
+      @user_acct.delete(:user, @user_acct.id(:user, @username))
+      expect { @user_acct.get(:user, @user_acct.id(:user, @username)) }.to raise_exception(NotFound)
     end
 
     it "complains about an attempt to delete a non-existent user" do
-      expect { @user_acct.delete_by_name("non-existent-user") }.to raise_exception(NotFound)
+      expect { @user_acct.delete(:user, "non-existent-user-id") }.to raise_exception(NotFound)
     end
 
   end

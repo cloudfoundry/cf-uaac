@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
-require 'stub_uaa'
+require 'stub/uaa'
 
 module CF::UAA
 

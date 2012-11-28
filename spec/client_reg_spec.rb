@@ -14,7 +14,7 @@
 require 'spec_helper'
 require 'uaa/client_reg'
 require 'cli/base'
-require 'stub_uaa'
+require 'stub/uaa'
 
 module CF::UAA
 

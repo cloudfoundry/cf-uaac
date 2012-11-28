@@ -27,53 +27,64 @@ class StubScim
   private
 
   # attribute types. Anything not listed is case-ignore string
-  HIDDEN_ATTRS = [:rtype, :password, :client_secret]
-  READ_ONLY_ATTRS = [:id, :meta, :groups]
-  BOOLEANS = [:active]
-  NUMBERS = [:access_token_validity, :refresh_token_validity]
-  GROUPS = [:groups, :auto_approved_scope, :scope, :authorities]
-  REFERENCES = [:members, :owners, :readers] + GROUPS # references to users or groups
+  HIDDEN_ATTRS = [:rtype, :password, :client_secret].to_set
+  READ_ONLY_ATTRS = [:rtype, :id, :meta, :groups].to_set
+  BOOLEANS = [:active].to_set
+  NUMBERS = [:access_token_validity, :refresh_token_validity].to_set
+  GROUPS = [:groups, :auto_approved_scope, :scope, :authorities].to_set
+  REFERENCES = [*GROUPS, :members, :owners, :readers].to_set # users or groups
   ENUMS = { authorized_grant_types: ["client_credentials", "implicit",
-      "authorization_code", "password", "refresh_token"] }
+      "authorization_code", "password", "refresh_token"].to_set }
   GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
-      :roles, :x509certificates]
-  GENERAL_SUBATTRS = [:value, :display, :primary, :type]
+      :roles, :x509certificates].to_set
+  GENERAL_SUBATTRS = [:value, :display, :primary, :type].to_set
   EXPLICIT_SINGLE = {
       name: [:formatted, :familyname, :givenname, :middlename,
-          :honorificprefix, :honorificsuffix],
-      meta: [:created, :lastmodified, :location, :version] }
+          :honorificprefix, :honorificsuffix].to_set,
+      meta: [:created, :lastmodified, :location, :version].to_set }
   EXPLICIT_MULTI = {
       addresses: [:formatted, :streetaddress, :locality, :region,
-          :postal_code, :country, :primary, :type],
-      authorizations: [:client_id, :group, :exp] }
+          :postal_code, :country, :primary, :type].to_set,
+      authorizations: [:client_id, :group, :exp].to_set }
 
   # resource class definitions: naming and legal attributes
   NAME_ATTR = { user: :username, client: :client_id, group: :displayname }
-  COMMON_ATTRS = [:externalid, :id, :meta]
+  COMMON_ATTRS = [:rtype, :externalid, :id, :meta].to_set
   LEGAL_ATTRS = {
-      user: COMMON_ATTRS + [:displayname, :username, :nickname,
+      user: [*COMMON_ATTRS, :displayname, :username, :nickname,
         :profileurl, :title, :usertype, :preferredlanguage, :locale,
         :timezone, :active, :password, :emails, :phonenumbers, :ims, :photos,
-        :entitlements, :roles, :x509_certificates, :name, :addresses,
-        :authorizations, :groups],
-      client: COMMON_ATTRS + [:client_id, :client_secret, :authorized_grant_types,
-        :scope, :auto_approved_scope, :access_token_validity,
-        :refresh_token_validity, :redirect_uri, :authorities],
-      group: COMMON_ATTRS + [:displayname, :members, :owners, :readers] }
-  VISIBLE_ATTRS = {user: LEGAL_ATTRS[:user] - HIDDEN_ATTRS,
-      client: LEGAL_ATTRS[:client] - HIDDEN_ATTRS, group: LEGAL_ATTRS[:group] - HIDDEN_ATTRS}
-
-  def self.searchable_attribute(attr)
-    attr = attr.to_sym
-    return false if HIDDEN_ATTRS.include?(attr)
-    LEGAL_ATTRS.each { |k, v| v.each { |a| return a if a == attr } }
-    false
-  end
+        :entitlements, :roles, :x509certificates, :name, :addresses,
+        :authorizations, :groups].to_set,
+      client: [*COMMON_ATTRS, :client_id, :client_secret, :authorities,
+        :authorized_grant_types, :scope, :auto_approved_scope, 
+        :access_token_validity, :refresh_token_validity, :redirect_uri].to_set,
+      group: [*COMMON_ATTRS, :displayname, :members, :owners, :readers].to_set }
+  VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
+      client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS), 
+      group: Set.new(LEGAL_ATTRS[:group] - HIDDEN_ATTRS)}
+  ATTR_NAMES = LEGAL_ATTRS.each_with_object(Set.new) { |(k, v), s|
+    v.each {|a| s << a.to_s }
+  }
+  SUBATTR_NAMES = GENERAL_SUBATTRS.each_with_object(Set.new) { |sa, s| s << sa.to_s } +
+    [*EXPLICIT_SINGLE, *EXPLICIT_MULTI].each_with_object(Set.new) { |(k, v), s|
+      v.each {|sa| s << sa.to_s }
+  }
 
   def self.remove_hidden(attrs = nil) attrs - HIDDEN_ATTRS if attrs end
+  def self.searchable_attribute(attr)
+    attr if ATTR_NAMES.include?(attr) && !HIDDEN_ATTRS.include?(attr = attr.to_sym)
+  end
 
-  def hide_attrs(thing, attrs = HIDDEN_ATTRS) attrs.each { |a| thing.delete(a) }; thing end
-  def valid_id?(id, rtype) id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) end
+  def remove_attrs(stuff, attrs = HIDDEN_ATTRS) 
+    attrs.each { |a| stuff.delete(a.to_s) }
+    stuff
+  end
+
+  def valid_id?(id, rtype) 
+    id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) 
+  end
+  
   def ref_by_name(name, rtype) @things_by_name[rtype.to_s + name.downcase] end
 
   def ref_by_id(id, rtype = nil)
@@ -82,8 +93,8 @@ class StubScim
 
   def valid_complex?(value, subattrs, simple_ok = false)
     return true if simple_ok && value.is_a?(String)
-    return unless value.is_a?(Hash) && (!simple_ok || value.key?(:value))
-    value.each { |k, v| return unless subattrs.include?(k) }
+    return unless value.is_a?(Hash) && (!simple_ok || value.key?("value"))
+    value.each { |k, v| return unless SUBATTR_NAMES.include?(k) && subattrs.include?(k.to_sym) }
   end
 
   def valid_multi?(values, subattrs, simple_ok = false)
@@ -95,14 +106,18 @@ class StubScim
     return unless value.is_a?(Array)
     value.each do |ref|
       return unless ref.is_a?(String) && valid_id?(ref, rtype) ||
-          ref.is_a?(Hash) && valid_id?(ref[:value], rtype)
+          ref.is_a?(Hash) && valid_id?(ref["value"], rtype)
     end
   end
 
-  def enforce_schema(rtype, thing)
-    thing.each do |k, v|
-      raise SchemaViolation, "illegal #{k} on #{rtype}" unless LEGAL_ATTRS[rtype].include?(k)
-      raise SchemaViolation, "attempt to modify read-only attribute #{k} on #{rtype}" if READ_ONLY_ATTRS.include?(k)
+  def enforce_schema(rtype, stuff)
+    stuff.each do |ks, v|
+      unless ATTR_NAMES.include?(ks.to_s) && LEGAL_ATTRS[rtype].include?(k = ks.to_sym)
+        raise SchemaViolation, "illegal #{ks} on #{rtype}"
+      end
+      if READ_ONLY_ATTRS.include?(k)
+        raise SchemaViolation, "attempt to modify read-only attribute #{k} on #{rtype}"
+      end
       valid_attr = case k
         when *BOOLEANS then v == !!v
         when *NUMBERS then v.is_a?(Integer)
@@ -118,22 +133,27 @@ class StubScim
     end
   end
 
-  def input!(thing)
+  def input(stuff)
+    thing = Util.hash_keys!(stuff.dup, :tosym) #TODO: need hash_keys that returns new hash
     REFERENCES.each {|a|
       next unless thing[a]
-      thing[a] = thing[a].each_with_object(Set.new) { |r, s| s << (r.is_a?(Hash)? r[:value] : r )}
+      thing[a] = thing[a].each_with_object(Set.new) { |r, s| 
+        s << (r.is_a?(Hash)? r[:value] : r )
+      }
     }
     GENERAL_MULTI.each {|a|
       next unless thing[a]
-      thing[a] = thing[a].each_with_object({}) {|v, o|
+      thing[a] = thing[a].each_with_object({}) { |v, o|
         v = {value: v} unless v.is_a?(Hash)
-        k = URI.encode_www_form(t: [v[:type], v: v[:value]]).downcase # enforce values are unique by type and value
+        # enforce values are unique by type and value
+        k = URI.encode_www_form(t: [v[:type], v: v[:value]]).downcase
         o[k] = v
       }
     }
+    thing
   end
 
-  def output(thing, attrs)
+  def output(thing, attrs = nil)
     attrs = thing.keys if attrs.nil? || attrs.empty?
     attrs.each_with_object({}) {|a, o|
       next unless thing[a]
@@ -160,45 +180,37 @@ class StubScim
   def id(name, rtype) (t = ref_by_name(name, rtype))? t[:id] : nil end
 
   def add(rtype, stuff)
-    unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype]])
+    unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype].to_s])
       raise SchemaViolation, "new #{rtype} has no name #{NAME_ATTR[rtype]}"
     end
     raise AlreadyExists if @things_by_name.key?(name = rtype.to_s + name.downcase)
     enforce_schema(rtype, stuff)
-    stuff.merge!(rtype: rtype, id: (id = SecureRandom.uuid),
+    thing = input(stuff).merge!(rtype: rtype, id: (id = SecureRandom.uuid),
         meta: { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1 })
-    input!(stuff)
-    add_user_groups(id, stuff[:members])
-    @things_by_id[id] = @things_by_name[name] = stuff
+    add_user_groups(id, thing[:members])
+    @things_by_id[id] = @things_by_name[name] = thing
     id
   end
 
   def update(id, stuff, match_version = nil, match_type = nil)
     raise NotFound unless thing = ref_by_id(id, match_type)
     raise BadVersion if match_version && match_version != thing[:meta][:version]
-    rtype = thing[:rtype]
-    if newname = stuff[NAME_ATTR[rtype]]
+    enforce_schema(rtype = thing[:rtype], remove_attrs(stuff, READ_ONLY_ATTRS))
+    new_thing = input(stuff)
+    if newname = new_thing[NAME_ATTR[rtype]]
       oldname = rtype.to_s + thing[NAME_ATTR[rtype]].downcase
-      if (newname = rtype.to_s + newname.downcase) == oldname
-        newname = nil
-      else
+      unless (newname = rtype.to_s + newname.downcase) == oldname
         raise AlreadyExists if @things_by_name.key?(newname)
+        @things_by_name.delete(oldname)
+        @things_by_name[newname] = thing
       end
     end
-    stuff = stuff.dup
-    hide_attrs(stuff, [:rtype] + READ_ONLY_ATTRS)
-    enforce_schema(rtype, stuff)
-    if newname
-      @things_by_name.delete(oldname)
-      @things_by_name[newname] = thing
-    end
-    input!(stuff)
-    if stuff[:members]
+    if new_thing[:members]
       members = thing[:members] || Set.new
-      remove_user_groups(id, members - stuff[:members])
-      add_user_groups(id, stuff[:members] - members)
+      remove_user_groups(id, members - new_thing[:members])
+      add_user_groups(id, new_thing[:members] - members)
     end
-    thing.merge! stuff
+    thing.merge! new_thing
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
     id
@@ -212,10 +224,11 @@ class StubScim
 
   def remove(id, rtype = nil)
     return unless thing = ref_by_id(id, rtype)
-    @things_by_id.delete(id)
     rtype = thing[:rtype]
     remove_user_groups(id, thing[:members])
-    hide_attrs(@things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase))
+    @things_by_id.delete(id)
+    thing = @things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase)
+    remove_attrs(output(thing))
   end
 
   def get(id, rtype = nil, *attrs)

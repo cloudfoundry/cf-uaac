@@ -14,7 +14,7 @@
 require 'set'
 require 'spec_helper'
 require 'uaa/token_issuer'
-require 'stub_uaa'
+require 'stub/uaa'
 
 module CF::UAA
 

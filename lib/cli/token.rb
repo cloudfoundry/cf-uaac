@@ -14,7 +14,7 @@
 require 'cli/common'
 require 'launchy'
 require 'uaa'
-require 'cli/stub_server'
+require 'stub/server'
 
 module CF::UAA
 

@@ -80,7 +80,7 @@ class MiscCli < CommonCli
   topic "Miscellaneous", "misc"
 
   desc "version", "Display version" do
-    say "UAA client #{VERSION}"
+    say "UAA client #{CLI_VERSION}"
   end
 
   define_option :trace, "--[no-]trace", "-t", "display extra verbose debug information"

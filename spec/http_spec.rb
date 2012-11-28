@@ -13,8 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/http'
-require 'uaa/version'
-require 'cli/stub_server'
+require 'stub/server'
 
 module CF::UAA
 

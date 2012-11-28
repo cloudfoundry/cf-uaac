@@ -22,7 +22,7 @@ class Config
 
   def self.config; @config ? @config.dup : {} end
   def self.loaded?; !!@config end
-  def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
+  def self.yaml; YAML.dump(Util.hash_keys!(@config.dup, :tostr)) end
   def self.target?(tgt) tgt if @config[tgt = subhash_key(@config, tgt)] end
 
   # if a yaml string is provided, config is loaded from the string, otherwise
@@ -48,12 +48,12 @@ class Config
     else # file doesn't exist, make sure we can write it now
       File.open(@config_file, 'w') { |f| f.write("--- {}\n\n") }
     end
-    @config = Util.hash_keys(@config, :tosym)
+    Util.hash_keys!(@config, :tosym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
   end
 
   def self.save
-    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :tostr), f) } if @config_file
+    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys!(@config.dup, :tostr), f) } if @config_file
     true
   end
 

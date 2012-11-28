@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/misc'
-require 'stub_uaa'
+require 'stub/uaa'
 
 module CF::UAA
 

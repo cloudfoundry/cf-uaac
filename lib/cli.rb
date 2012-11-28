@@ -11,4 +11,5 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
+require "cli/version"
 require "cli/runner"

@@ -11,9 +11,8 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require "uaa/version"
-require "uaa/misc"
-require "uaa/token_issuer"
-require "uaa/token_coder"
-require "uaa/user_account"
-require "uaa/client_reg"
+module CF
+  module UAA
+    CLI_VERSION = "1.3.0.snapshot"
+  end
+end

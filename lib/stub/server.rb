@@ -16,6 +16,7 @@ require 'date'
 require 'logger'
 require 'pp'
 require 'erb'
+require 'multi_json'
 
 module Stub
 
@@ -34,17 +35,17 @@ class Request
     end
     add_lines str
     if @state == :body
-      @content_length = headers[:content_length].to_i ||= 0
+      @content_length = headers["content-length"].to_i
       @state = :complete unless body.bytesize < @content_length
     end
     @state == :complete
   end
 
   def cookies
-    return {} unless chdr = @headers[:cookie]
+    return {} unless chdr = @headers["cookie"]
     chdr.strip.split(/\s*;\s*/).each_with_object({}) do |pair, o|
       k, v = pair.split(/\s*=\s*/)
-      o[k.downcase.gsub('-', '_').to_sym] = v
+      o[k.downcase] = v
     end
   end
 
@@ -54,7 +55,7 @@ class Request
     str.each_line do |ln|
       if @state == :complete || @state == :init
         start = ln.chomp!.split(/\s+/)
-        @method, @path, @headers, @body = start[0].downcase.to_sym, start[1], {}, ""
+        @method, @path, @headers, @body = start[0].downcase, start[1], {}, ""
         @state = :headers
       elsif @state == :body
         # TODO: figure out how to byteslice from ln to eos, append to @body, return
@@ -63,7 +64,7 @@ class Request
         @state = :body
       else
         key, sep, val = ln.partition(/:\s+/)
-        @headers[key.downcase.gsub('-', '_').to_sym] = val
+        @headers[key.downcase] = val
       end
     end
   end
@@ -76,36 +77,36 @@ class Reply
   def initialize(status = 200) @status, @headers, @cookies, @body = status, {}, [], "" end
   def to_s
     reply = "HTTP/1.1 #{@status} OK\r\n"
-    headers[:server] = "stub server"
-    headers[:date] = DateTime.now.httpdate
-    headers[:content_length] = body.bytesize
-    headers.each { |k, v| reply << "#{k.to_s.gsub('_', '-')}: #{v}\r\n" }
+    headers["server"] = "stub server"
+    headers["date"] = DateTime.now.httpdate
+    headers["content-length"] = body.bytesize
+    headers.each { |k, v| reply << "#{k}: #{v}\r\n" }
     @cookies.each { |c| reply << "Set-Cookie: #{c}\r\n" }
     reply << "\r\n" << body
   end
   def json(status = nil, info)
     info = {message: info} unless info.respond_to? :each
     @status = status if status
-    headers[:content_type] = "application/json"
-    @body = info.to_json
+    headers["content-type"] = "application/json"
+    @body = MultiJson.dump(info)
     nil
   end
   def text(status = nil, info)
     @status = status if status
-    headers[:content_type] = "text/plain"
+    headers["content-type"] = "text/plain"
     @body = info.pretty_inspect
     nil
   end
   def html(status = nil, info)
     @status = status if status
-    headers[:content_type] = "text/html"
+    headers["content-type"] = "text/html"
     info = ERB::Util.html_escape(info.pretty_inspect) unless info.is_a?(String)
     @body = "<html><body>#{info}</body></html>"
     nil
   end
   def set_cookie(name, value, options = {})
     @cookies << options.each_with_object("#{name}=#{value}") { |(k, v), o|
-      o << (v.nil? ? "; #{k.to_s.gsub('_', '-')}" : "; #{k.to_s.gsub('_', '-')}=#{v}")
+      o << (v.nil? ? "; #{k}" : "; #{k}=#{v}")
     }
   end
 end
@@ -120,17 +121,19 @@ class Base
     fail unless !EM.reactor_running? || EM.reactor_thread?
     matcher = Regexp.new("^#{Regexp.escape(matcher.to_s)}$") unless matcher.is_a?(Regexp)
     filters = filters.each_with_object({}) { |(k, v), o|
-      o[k] = v.is_a?(Regexp) ? v : Regexp.new("^#{Regexp.escape(v.to_s)}$")
+      o[k.downcase] = v.is_a?(Regexp) ? v : Regexp.new("^#{Regexp.escape(v.to_s)}$")
     }
     @routes ||= {}
-    @route_number = (@route_number || 0) + 1
+    @route_number = @route_number.to_i + 1
     route_name = "route_#{@route_number}".to_sym
     define_method(route_name, handler)
     [*http_methods].each do |m|
-      m = m.to_sym
+      m = m.to_s.downcase
       @routes[m] ||= []
       i = @routes[m].index { |r| r[0].to_s.length < matcher.to_s.length }
-      @routes[m].insert(i || -1, [matcher, filters, route_name]) unless i && @routes[m][i][0] == matcher
+      unless i && @routes[m][i][0] == matcher
+        @routes[m].insert(i || -1, [matcher, filters, route_name])
+      end
     end
   end
 
@@ -158,8 +161,9 @@ class Base
     @match, handler = self.class.find_route(request)
     server.logger.debug "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}"
     send handler
-    reply.headers[:connection] ||= request.headers[:connection] if request.headers[:connection]
-    server.logger.debug "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers[:content_type]}"
+    reply.headers['connection'] ||= request.headers['connection'] if request.headers['connection']
+    server.logger.debug "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers['content-type']}"
+    #server.logger.debug "full reply is: #{reply.body.inspect}"
   rescue Exception => e
     server.logger.debug "exception from route handler: #{e.message}"
     server.trace { e.backtrace }
@@ -167,7 +171,7 @@ class Base
   end
 
   def reply_in_kind(status = nil, info)
-    case request.headers[:accept]
+    case request.headers['accept']
     when /application\/json/ then reply.json(status, info)
     when /text\/html/ then reply.html(status, info)
     else reply.text(status, info)
