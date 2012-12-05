@@ -12,7 +12,6 @@
 #++
 
 require 'cli/common'
-require 'uaa'
 
 module CF::UAA
 
@@ -20,41 +19,35 @@ class ClientCli < CommonCli
 
   topic "Client Application Registrations", "reg"
 
-  def client_reg_request
-    (yield ClientReg.new(Config.target, auth_header)) || "success" # no exception means success
-  rescue Exception => e
-    complain e
-  end
+  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list", 
+      authorities: "list", access_token_validity: "seconds", 
+      refresh_token_validity: "seconds", redirect_uri: "list" }
+  CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
-  def client_info(defaults, interact)
-    del_op = "<delete>"
-    info = {client_id: opts[:client_id]}
+  def client_info(defaults)
+    info = {client_id: defaults["client_id"] || opts[:client_id]}
     info[:client_secret] = opts[:secret] if opts[:secret]
+    del_attrs = Util.arglist(opts[:del_attrs], [])
     CLIENT_SCHEMA.each_with_object(info) do |(k, p), info|
-      v = nil
-      if !opts.key?(k)
-        info[k] = (v unless v == del_op) if interact ?
-            !p.empty? && (v = askd("#{k.to_s.gsub('_', ' ')} (#{p})", defaults[k])) : (v = defaults[k])
-      elsif opts[k] == del_op
-        info[k] = nil
-      else
-        info[k] = v if (v = (opts[k].nil? || opts[k].empty? ? defaults[k]: opts[k]))
+      next if del_attrs.include?(k)
+      default = Util.strlist(defaults[k.to_s])
+      if opts.key?(k)
+        info[k] = opts[k].nil? || opts[k].empty? ? default : opts[k]
+      else 
+        info[k] = opts[:interact] ? 
+          info[k] = askd("#{k.to_s.gsub('_', ' ')} (#{p})", default): default
       end
+      info[k] = Util.arglist(info[k]) if p == "list"
+      info.delete(k) unless info[k]
     end
   end
 
-  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list", authorities: "list",
-      access_token_validity: "seconds", refresh_token_validity: "seconds", redirect_uri: "list" }
-
-  CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
-
   desc "clients", "List client registrations" do
-    return unless reglist = client_reg_request { |cr| cr.list }
-    pp reglist.each_with_object({}) { |(k, v), o| o[k] = ClientReg.multivalues_to_strings!(v) }
+    pp scim_request { |cr| cr.all_pages(:client) }
   end
 
   desc "client get [name]", "Get specific client registration" do |name|
-    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(clientname(name))) }
+    pp scim_request { |cr| cr.get(:client, cr.id(:client, clientname(name))) }
   end
 
   define_option :clone, "--clone <other_client>", "get default client settings from existing client"
@@ -62,43 +55,49 @@ class ClientCli < CommonCli
 
   desc "client add [name]", "Add client registration",
       *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |name|
-    client_reg_request do |cr|
+    pp scim_request { |cr|
       opts[:client_id] = clientname(name)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
-      cr.create client_info(defaults, opts[:interact])
-    end
+      defaults.delete("client_id")
+      cr.add(:client, client_info(defaults))
+    }
   end
 
-  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys, :interact do |name|
-    client_reg_request do |cr|
+  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys, 
+      :del_attrs, :interact do |name|
+    pp scim_request { |cr|
       opts[:client_id] = clientname(name)
-      defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
-      info = client_info(defaults, opts[:interact])
-      return cr.update info if info.length > 1
-      say "No options given, nothing to update. Use -i for interactive update."
-    end
+      info = client_info(cr.get(:client, opts[:client_id]))
+      info.length > 1 ? cr.put(:client, info) : gripe("Nothing to update. Use -i for interactive update.")
+    }
   end
 
   desc "client delete [name]", "Delete client registration" do |name|
-    client_reg_request { |cr| cr.delete(clientname(name)) }
+    pp scim_request { |cr| 
+      cr.delete(:client, clientname(name)) 
+      "client registration deleted"
+    }
   end
 
   desc "secret set [name]", "Set client secret", :secret do |name|
-    client_reg_request do |cr|
+    pp scim_request { |cr|
       cr.change_secret(clientname(name), verified_pwd("New secret", opts[:secret]))
-    end
+      "client secret successfully set"
+    }
   end
 
   define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
   desc "secret change", "Change secret for authenticated client in current context", :old_secret, :secret do
-    return say "context not set" unless client_id = Config.context.to_s
-    client_reg_request do |cr|
+    return gripe "context not set" unless client_id = Config.context.to_s
+    scim_request { |cr|
       old = opts[:old_secret] || ask_pwd("Current secret")
       cr.change_secret(client_id, verified_pwd("New secret", opts[:secret]), old)
-    end
+      "client secret successfully changed"
+    }
   end
 
 end
 
 end
+

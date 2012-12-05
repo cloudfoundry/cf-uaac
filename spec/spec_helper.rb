@@ -18,12 +18,15 @@ if ENV['COVERAGE']
     SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
   end
   SimpleCov.add_filter "^#{File.dirname(__FILE__)}" if ENV['COVERAGE'] =~ /exclude-spec/
-  SimpleCov.add_filter "^#{File.expand_path(File.join(File.dirname(__FILE__), "..", "vendor"))}" if ENV['COVERAGE'] =~ /exclude-vendor/
+  SimpleCov.add_filter "^#{File.expand_path(File.join(__FILE__, "..", "..", "vendor"))}" if ENV['COVERAGE'] =~ /exclude-vendor/
   SimpleCov.start
 end
 
 require 'rspec'
 require 'eventmachine'
+require 'stub/uaa'
+
+module CF::UAA
 
 module SpecHelper
 
@@ -33,12 +36,12 @@ module SpecHelper
     e
   end
 
-  # runs given block on a thread or fiber and returns result
-  # if eventmachine is running on another thread, the fiber
+  # Runs given block on a thread or fiber and returns result.
+  # If eventmachine is running on another thread, the fiber
   # must be on the same thread, hence EM.schedule and the
   # restriction that the given block cannot include rspec matchers.
-  def frequest(&blk)
-    return capture_exception(&blk) unless @async
+  def frequest(on_fiber, &blk)
+    return capture_exception(&blk) unless on_fiber
     result = nil
     cthred = Thread.current
     EM.schedule { Fiber.new { result = capture_exception(&blk); cthred.run }.resume }
@@ -46,4 +49,39 @@ module SpecHelper
     result
   end
 
+  def setup_target(opts = {})
+    opts = { authorities: "clients.read,scim.read,scim.write,uaa.resource",
+      grant_types: "client_credentials,password", 
+      scope: "openid,password.write"}.update(opts)
+    @admin_client = ENV["UAA_CLIENT_ID"] || "admin"
+    @admin_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
+    if ENV["UAA_CLIENT_TARGET"]
+      @target, @stub_uaa = ENV["UAA_CLIENT_TARGET"], nil
+    else
+      @stub_uaa = StubUAA.new(@admin_client, @admin_secret).run_on_thread
+      @target = @stub_uaa.url
+    end
+    Cli.run("target #{@target}").should be
+    Cli.run("token client get #{@admin_client} -s #{@admin_secret}")
+    Config.yaml.should include("access_token")
+    test_client = "test_client_#{Time.now.to_i}"
+    @test_secret = "+=tEsTsEcRet~!@"
+    Cli.run("client add #{test_client} -s #{@test_secret} " +
+        "--authorities #{opts[:authorities]} --scope #{opts[:scope]} " + 
+        "--authorized_grant_types #{opts[:grant_types]}").should be
+    opts.each { |k, a| Util.arglist(a).each {|v| Cli.output.string.should include(v) }}
+    @test_client = test_client
+  end
+
+  def cleanup_target
+    Cli.run("context #{@admin_client}")
+    if @test_client && !@test_client.empty?
+      Cli.run("client delete #{@test_client}").should be
+      Cli.output.string.should include("deleted")
+    end
+    @stub_uaa.stop if @stub_uaa
+  end
 end
+
+end
+

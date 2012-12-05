@@ -27,7 +27,7 @@ class TokenCatcher < Stub::Base
         Config.target_value(:token_target))
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
-    server.info.update(tkn.info)
+    server.info.update(Util.hash_keys!(tkn.info, :tosym))
     reply.text "you are now logged in and can close this window"
   rescue TargetError => e
     reply.text "#{e.message}:\r\n#{JSON.pretty_generate(e.info)}\r\n#{e.backtrace}"
@@ -38,7 +38,7 @@ class TokenCatcher < Stub::Base
   end
 
   route :get, '/favicon.ico' do
-    reply.headers[:content_type] = "image/vnd.microsoft.icon"
+    reply.headers['content-type'] = "image/vnd.microsoft.icon"
     reply.body = File.read File.expand_path(File.join(__FILE__, '..', 'favicon.ico'))
   end
 
@@ -46,7 +46,7 @@ class TokenCatcher < Stub::Base
   route :post, '/callback' do process_grant request.body end
   route :get, '/callback' do
     server.logger.debug "caught redirect back from UAA after authentication"
-    reply.headers[:content_type] = "text/html"
+    reply.headers['content-type'] = "text/html"
     reply.body = <<-HTML.gsub(/^ +/, '')
       <html><body><script type="text/javascript">
       var fragment = location.hash.substring(1);
@@ -98,12 +98,12 @@ class TokenCli < CommonCli
       end
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
-    return gripe "attempt to get token failed\n" unless token && token[:access_token]
-    tokinfo = TokenCoder.decode(token[:access_token], nil, nil, false)
-    Config.context = tokinfo[:user_name]
-    Config.add_opts(user_id: tokinfo[:user_id])
+    return gripe "attempt to get token failed\n" unless token && token["access_token"]
+    tokinfo = TokenCoder.decode(token["access_token"], nil, nil, false)
+    Config.context = tokinfo["user_name"]
+    Config.add_opts(user_id: tokinfo["user_id"])
     Config.add_opts token
-    say_success "implicit (with posted credentials) "
+    say_success "implicit (with posted credentials)"
   end
 
   define_option :secret, "--secret <secret>", "-s", "client secret"

@@ -31,14 +31,14 @@ class InfoCli < CommonCli
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
-    pp misc_request { update_target_info(Misc.server(Config.target))[:prompts] }
+    pp misc_request { update_target_info(Misc.server(Config.target))['prompts'] }
   end
 
   desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
     info = misc_request { Misc.validation_key(Config.target, 
         (clientname if opts.key?(:client)), (clientsecret if opts.key?(:client))) }
-    Config.target_opts(signing_alg: info[:alg], signing_key: info[:value])
-	pp info
+    Config.target_opts(signing_alg: info['alg'], signing_key: info['value'])
+    pp info
   end
 
   desc "stats", "Show UAA's current usage statistics", :client, :secret do

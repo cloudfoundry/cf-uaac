@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.version     = CF::UAA::CLI_VERSION
   s.authors     = ["Dave Syer", "Dale Olds", "Joel D'sa", "Vidya Valmikinathan", "Luke Taylor"]
   s.email       = ["dsyer@vmware.com", "olds@vmware.com", "jdsa@vmware.com", "vidya@vmware.com", "ltaylor@vmware.com"]
-  s.homepage    = "https://github.com/cloudfoundry/uaa/tree/master/gem"
+  s.homepage    = "https://github.com/cloudfoundry/cf-uaac"
   s.summary     = %q{Command line interface for CloudFoundry UAA}
   s.description = %q{Client command line tools for interacting with the CloudFoundry User Account and Authorization (UAA) server.  The UAA is an OAuth2 Authorization Server so it can be used by webapps and command line apps to obtain access tokens to act on behalf of users.  The tokens can then be used to access protected resources in a Resource Server.  This library can be used by clients (as a convenient wrapper for mainstream oauth gems) or by resource servers.}
 
@@ -39,7 +39,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "simplecov-rcov"
   s.add_development_dependency "ci_reporter"
   s.add_runtime_dependency "highline"
-  s.add_runtime_dependency "cf-uaa-lib", ">= 1.3.0.snapshot"
+  s.add_runtime_dependency "cf-uaa-lib", ">= 1.3.0"
   s.add_runtime_dependency "multi_json"
   s.add_runtime_dependency "eventmachine"
   s.add_runtime_dependency "launchy"

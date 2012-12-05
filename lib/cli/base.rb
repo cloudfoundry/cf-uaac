@@ -239,6 +239,7 @@ class BaseCli
     @input ||= $stdin
     @output ||= $stdout
     @option_defs = {}
+    @output.string = "" if @output.respond_to?(:string)
     args = args.split if args.respond_to?(:split)
     @parser = OptionParser.new
     opts = @topics.each_with_object({}) do |tpc, o|
@@ -267,6 +268,8 @@ class BaseCli
     @output.puts "#{File.basename($0)}: subcommand not found"
   rescue Exception => e
     @output.puts "#{File.basename($0)} error", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
+  ensure
+    puts @output.string if opts[:trace] && @print_on_trace
   end
 
 end

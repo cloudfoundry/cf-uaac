@@ -53,6 +53,10 @@ class StubUAAConn < Stub::Base
     emails[0][:value]
   end
 
+  def find_user(name, pwd = nil)
+    user = server.scim.get_by_name(name, :user, :password, :id, :emails, :username, :groups)
+    user if user && (!pwd || user[:password] == pwd)
+  end
 
   #----------------------------------------------------------------------------
   # miscellaneous endpoints
@@ -106,21 +110,18 @@ class StubUAAConn < Stub::Base
   end
 
   route :post, '/login.do', "content-type" => %r{application/x-www-form-urlencoded} do
-    unless request.headers["content-type"] =~ %r{application/x-www-form-urlencoded}
-      return reply_in_kind(400, error_description: "need form encoded content")
-    end
-    session = Util.decode_form_to_hash(request.body)
+    creds = Util.decode_form_to_hash(request.body)
+    user = find_user(creds['username'], creds['password'])
     reply.headers[:location] = "login"
     reply.status = 302
-    reply.set_cookie(:stubsession, encode_cookie(session), httponly: nil)
+    reply.set_cookie(:stubsession, encode_cookie(username: user[:username], httponly: nil))
   end
 
-  route :get, %r{^/login.do(\?|$)(.*)} do
-    pp Util.decode_form_to_hash(match[2])
-    reply.headers[:location] = "login"
+  route :get, %r{^/logout.do(\?|$)(.*)} do
+    query = Util.decode_form_to_hash(match[2])
+    reply.headers[:location] = query['redirect_uri'] || "login"
     reply.status = 302
-    reply.set_cookie(:stubsession, encode_cookie(), max_age: -1)
-    #reply.set_cookie(:stubsession, encode_cookie(), expires: "Thu, 01-Jan-1970 00:00:01 GMT")
+    reply.set_cookie(:stubsession, encode_cookie, max_age: -1)
   end
 
 
@@ -153,11 +154,6 @@ class StubUAAConn < Stub::Base
     ah = Base64::strict_decode64(ah[1]).split(':')
     client = server.scim.get_by_name(ah[0], :client)
     client if client && client[:client_secret] == ah[1]
-  end
-
-  def find_user(name, pwd = nil)
-    user = server.scim.get_by_name(name, :user, :password, :id, :emails, :username, :groups)
-    user if user && (!pwd || user[:password] == pwd)
   end
 
   def valid_redir_uri?(client, redir_uri)
@@ -335,10 +331,11 @@ class StubUAAConn < Stub::Base
 
   def scim_to_client(info)
     [:authorities, :scope, :auto_approve_scope].each { |a| info[a] = ids_to_names(info[a]) if info.key?(a) }
+    info.delete(:id)
     info
   end
 
-  route :get, '/oauth/clients' do
+  route :get, %r{^/oauth/clients(\?|$)(.*)} do
     return unless valid_token("clients.read")
     info, _ = server.scim.find(:client)
     reply_in_kind(info.each_with_object({}) {|c, o| o[c[:client_id]] = scim_to_client(c)})
@@ -346,8 +343,8 @@ class StubUAAConn < Stub::Base
 
   route :post, '/oauth/clients', "content-type" => %r{application/json} do
     return unless valid_token("clients.write")
-    server.scim.add(:client, client_to_scim(Util.json_parse(request.body, :down)))
-    reply.status = 201
+    id = server.scim.add(:client, client_to_scim(Util.json_parse(request.body, :down)))
+    reply_in_kind scim_to_client(server.scim.get(id, :client, *StubScim::VISIBLE_ATTRS[:client]))
   end
 
   route :put, %r{^/oauth/clients/([^/]+)$}, "content-type" => %r{application/json} do
@@ -378,7 +375,7 @@ class StubUAAConn < Stub::Base
       return unless valid_token("uaa.admin")
     end
     return bad_request("no new secret given") unless info['secret']
-    server.scim.update(match[1], client_secret: info['secret'])
+    server.scim.set_hidden_attr(match[1], :client_secret, info['secret'])
     reply.json(status: "ok", message: "secret updated")
   end
 
@@ -422,7 +419,7 @@ class StubUAAConn < Stub::Base
   route :get, %r{^/(Users|Groups)(\?|$)(.*)} do
     return unless valid_token("scim.read")
     rtype = match[1] == "Users"? :user : :group
-    page_query(rtype, Util.decode_form_to_hash(match[3]), StubScim::VISIBLE_ATTRS[rtype])
+    page_query(rtype, Util.decode_form_to_hash(match[3], :down), StubScim::VISIBLE_ATTRS[rtype])
   end
 
   route :get, %r{^/(Users|Groups)/([^/]+)$} do
@@ -447,12 +444,12 @@ class StubUAAConn < Stub::Base
       return unless valid_token("scim.write")
     end
     return bad_request("no new password given") unless newpwd = info['password']
-    server.scim.update(match[1], password: newpwd)
+    server.scim.set_hidden_attr(match[1], :password, newpwd)
     reply.json(status: "ok", message: "password updated")
   end
 
   route :get, %r{^/ids/Users(\?|$)(.*)} do
-    page_query(:user, Util.decode_form_to_hash(match[2]), [:username, :id])
+    page_query(:user, Util.decode_form_to_hash(match[2], :down), [:username, :id])
   end
 
 end

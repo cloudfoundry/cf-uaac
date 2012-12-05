@@ -13,6 +13,7 @@
 
 require 'cli/base'
 require 'cli/config'
+require 'uaa'
 
 module CF::UAA
 
@@ -65,11 +66,17 @@ class CommonCli < Topic
     complain e
   end
 
+  def scim_request
+    yield Scim.new(Config.target, auth_header)
+  rescue Exception => e
+    complain e
+  end
+
   def update_target_info(info = nil)
     return if !info && Config.target_value(:prompts)
     info ||= Misc.server(Config.target)
-    Config.target_opts(prompts: info[:prompts])
-    Config.target_opts(token_endpoint: info[:token_endpoint]) if info[:token_endpoint]
+    Config.target_opts(prompts: info['prompts'])
+    Config.target_opts(token_endpoint: info['token_endpoint']) if info['token_endpoint']
     info
   end
 

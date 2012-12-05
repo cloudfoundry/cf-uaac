@@ -12,7 +12,6 @@
 #++
 
 require 'cli/common'
-require 'uaa'
 
 module CF::UAA
 
@@ -36,79 +35,68 @@ class UserCli < CommonCli
     info
   end
 
-  def acct_request
-    yield UserAccount.new(Config.target, auth_header)
-  rescue Exception => e
-    complain e
-  end
-
   define_option :attrs, "-a", "--attributes <names>", "output for each user"
   define_option :start, "--start <number>", "start of output page"
   define_option :count, "--count <number>", "max number per page"
   desc "users [filter]", "List user accounts", :attrs, :start, :count do |filter|
-    pp acct_request { |ua|
+    pp scim_request { |ua|
       query = { attributes: opts[:attrs], filter: filter }
-      if opts[:start] || opts[:count]
-        ua.query_users(query.merge!(startIndex: opts[:start], count: opts[:count]))
-      else
-        ua.all_pages(:query_users, query)
-      end
+      opts[:start] || opts[:count] ?
+        ua.query(:user, query.merge!(startIndex: opts[:start], count: opts[:count])):
+        ua.all_pages(:user, query)
     }
   end
 
   desc "user get [name]", "Get specific user account" do |name|
-    pp acct_request { |ua| ua.get_by_name(username(name)) }
+    pp scim_request { |ua| ua.get(:user, ua.id(:user, username(name))) }
   end
 
   desc "user add [name]", "Add a user account", *USER_INFO_OPTS, :password do |name|
     info = {userName: username(name), password: verified_pwd("Password", opts[:password])}
-    pp acct_request { |ua| ua.add(user_opts(info)); "user account successfully added" }
+    pp scim_request { |ua| 
+      ua.add(:user, user_opts(info))
+      "user account successfully added" 
+    }
   end
 
   define_option :del_attrs, "--del_attrs <attr_names>", "list of attributes to delete"
   desc "user update [name]", "Update a user account with specified options",
       *USER_INFO_OPTS, :del_attrs do |name|
     return say "no user updates specified" if (updates = user_opts).empty?
-    pp acct_request { |ua|
-      info = ua.get_by_name(username(name))
-      opts[:del_attrs].each { |a| info.delete(a) } if opts[:del_attrs]
-      ua.update(info[:id], info.merge(updates))
-      "user account successfully updated"
-    }
-  end
-
-  desc "user patch [name] [updates]", "Patch user account with updates in SCIM json format",
-      :del_attrs do |name, updates|
-    pp acct_request { |ua|
-      ua.update(username(name), Util.json_parse(updates), opts[:del_attrs])
+    pp scim_request { |ua|
+      info = ua.get(:user, ua.id(:user, username(name)))
+      opts[:del_attrs].each { |a| info.delete(a.to_s) } if opts[:del_attrs]
+      ua.put(:user, info.merge(updates))
       "user account successfully updated"
     }
   end
 
   desc "user delete [name]", "Delete user account" do |name|
-    pp acct_request { |ua|
-      ua.delete_by_name(username(name))
+    pp scim_request { |ua|
+      ua.delete(:user, ua.id(:user, username(name)))
       "user account successfully deleted"
     }
   end
 
   desc "user ids [username|id...]", "Gets user names and ids for the given users" do |*users|
-    pp acct_request { |ua|
+    pp scim_request { |ua|
       users = Util.arglist(ask("names or ids of users")) if !users || users.empty?
-      ua.ids_exclusive(*users)
+      ids = ua.ids(:user_id, *users)
+      raise NotFound, "no users found" unless ids && ids.length > 0
+      ids
     }
   end
 
   desc "password set [name]", "Set password", :password do |name|
-    pp acct_request { |ua|
-      ua.change_password_by_name(username(name), verified_pwd("New password", opts[:password]))
+    pp scim_request { |ua|
+      ua.change_password(ua.id(:user, username(name)), verified_pwd("New password", opts[:password]))
       "password successfully set"
     }
   end
 
   define_option :old_password, "-o", "--old_password <password>", "current password"
   desc "password change", "Change password for authenticated user in current context", :old_password, :password do
-    pp acct_request { |ua|
+    pp scim_request { |ua|
       oldpwd = opts[:old_password] || ask_pwd("Current password")
       ua.change_password(Config.value(:user_id), verified_pwd("New password", opts[:password]), oldpwd)
       "password successfully changed"

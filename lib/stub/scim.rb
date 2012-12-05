@@ -45,7 +45,7 @@ class StubScim
   EXPLICIT_MULTI = {
       addresses: [:formatted, :streetaddress, :locality, :region,
           :postal_code, :country, :primary, :type].to_set,
-      authorizations: [:client_id, :group, :exp].to_set }
+      authorizations: [:client_id, :approved, :denied, :exp].to_set }
 
   # resource class definitions: naming and legal attributes
   NAME_ATTR = { user: :username, client: :client_id, group: :displayname }
@@ -134,7 +134,7 @@ class StubScim
   end
 
   def input(stuff)
-    thing = Util.hash_keys!(stuff.dup, :tosym) #TODO: need hash_keys that returns new hash
+    thing = Util.hash_keys(stuff.dup, :tosym)
     REFERENCES.each {|a|
       next unless thing[a]
       thing[a] = thing[a].each_with_object(Set.new) { |r, s| 
@@ -205,12 +205,15 @@ class StubScim
         @things_by_name[newname] = thing
       end
     end
-    if new_thing[:members]
-      members = thing[:members] || Set.new
-      remove_user_groups(id, members - new_thing[:members])
-      add_user_groups(id, new_thing[:members] - members)
+    if new_thing[:members] || thing[:members]
+      old_members = thing[:members] || Set.new
+      new_members = new_thing[:members] || Set.new
+      remove_user_groups(id, old_members - new_members)
+      add_user_groups(id, new_members - old_members)
     end
-    thing.merge! new_thing
+    READ_ONLY_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
+    HIDDEN_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
+    thing.replace new_thing
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
     id
@@ -220,6 +223,12 @@ class StubScim
     return unless g = ref_by_id(gid, :group)
     (g[:members] ||= Set.new) << member
     add_user_groups(gid, Set[member])
+  end
+
+  def set_hidden_attr(id, attr, value)
+    raise NotFound unless thing = ref_by_id(id)
+    raise ArgumentError unless HIDDEN_ATTRS.include?(attr)
+    thing[attr] = value
   end
 
   def remove(id, rtype = nil)

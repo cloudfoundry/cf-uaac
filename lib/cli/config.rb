@@ -22,7 +22,7 @@ class Config
 
   def self.config; @config ? @config.dup : {} end
   def self.loaded?; !!@config end
-  def self.yaml; YAML.dump(Util.hash_keys!(@config.dup, :tostr)) end
+  def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
   def self.target?(tgt) tgt if @config[tgt = subhash_key(@config, tgt)] end
 
   # if a yaml string is provided, config is loaded from the string, otherwise
@@ -53,7 +53,7 @@ class Config
   end
 
   def self.save
-    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys!(@config.dup, :tostr), f) } if @config_file
+    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :tostr), f) } if @config_file
     true
   end
 
@@ -70,7 +70,7 @@ class Config
     raise ArgumentError, "target not set" unless @target
     return unless hash and !hash.empty?
     raise ArgumentError, "'contexts' is a reserved key" if hash.key?(:contexts)
-    @config[@target].merge! hash
+    @config[@target].merge! Util.hash_keys(hash, :tosym)
     save
   end
 
@@ -111,7 +111,7 @@ class Config
   def self.add_opts(hash)
     raise ArgumentError, "target and context not set" unless @target && @context
     return unless hash and !hash.empty?
-    @config[@target][:contexts][@context].merge! hash
+    @config[@target][:contexts][@context].merge! Util.hash_keys(hash, :tosym)
     save
   end
 

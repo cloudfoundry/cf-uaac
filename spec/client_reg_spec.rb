@@ -12,41 +12,91 @@
 #++
 
 require 'spec_helper'
-require 'uaa/client_reg'
-require 'cli/base'
-require 'stub/uaa'
+require 'cli'
 
 module CF::UAA
 
-describe ClientReg do
+describe ClientCli do
 
   include SpecHelper
 
   before :all do
     #Util.default_logger(:trace)
-    id, secret = "testclient", "testsecret"
-    @stub_uaa = StubUAA.new(id, secret).run_on_thread
-    @token = TokenIssuer.new(@stub_uaa.url, id, secret).client_credentials_grant
-    @client_reg = ClientReg.new(@stub_uaa.url, @token.auth_header)
-    @client_reg.async = @async = false
+    Cli.configure("", nil, StringIO.new, true)
+    setup_target(authorities: "scim.read", grant_types: "client_credentials")
+    @test_user, @test_pwd = "sam_#{Time.now.to_i}", "correcthorsebatterystaple"
   end
 
-  after :all do @stub_uaa.stop if @stub_uaa end
-  subject { @client_reg }
+  after :all do cleanup_target end
 
-  it "should register a client" do
-    new_client = { client_id: "new_client", client_secret: "new_client_secret",
-      authorities: "password.write openid",
-      authorized_grant_types: "client_credentials authorization_code",
-      access_token_validity: 60 * 60 * 24 * 7 }
-    frequest { subject.create(new_client)}.should be_nil
+  it "registers a new client" do
+    @test_client.should be # actually registered in the before :all block
   end
 
-  it "should get a client registration" do
-    result = frequest { subject.get "new_client" }
-    result[:client_id].should == "new_client"
-    result[:authorities].should include "openid"
-    result[:authorized_grant_types].should include "authorization_code"
+  it "gets a client registration" do
+    Cli.run("client get #{@test_client}").should be
+    Cli.output.string.should include @test_client
+  end
+
+  it "lists client registrations" do
+    Cli.run("clients").should be
+    Cli.output.string.should include @admin_client, @test_client
+  end
+
+  context "as test client" do
+
+    before :all do
+      Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+    end
+
+    it "logs in as test client" do
+      Cli.run("context").should be # login was in before :all block
+      Cli.output.string.should include "access_token", @test_client
+    end
+
+    it "fails to create a user account as test client" do
+      Cli.run("user add #{@test_user} -p #{@test_pwd}").should be_nil
+      Cli.output.string.should include "insufficient_scope"
+    end
+
+    context "as updated client" do
+
+      before :all do
+        # update the test client as the admin client
+        Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+        Cli.run("context #{@admin_client}").should be
+        Cli.run("client update #{@test_client} --authorities scim.write,scim.read").should be
+        Cli.run("client get #{@test_client}").should be
+        Cli.output.string.should include "scim.read", "scim.write"
+      end
+
+      it "fails to create a user account with old token" do
+        Cli.run("context #{@test_client}").should be
+        Cli.run("user add #{@test_user} -p #{@test_pwd}").should be_nil
+        Cli.output.string.should include "insufficient_scope"
+      end
+
+      it "creates a user account with a new token" do
+        Cli.run("context #{@test_client}").should be
+        Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+        Cli.run("token decode")
+        Cli.run("user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com --family_name #{@test_user.capitalize} --given_name joe").should be
+        Cli.output.string.should_not include "insufficient_scope"
+        Cli.run("user get #{@test_user}").should be
+        Cli.output.string.should include @test_user.capitalize
+      end
+    end
+
+  end
+
+  context "as admin client" do
+    it "deletes a client registration" do
+      client = @test_client.dup
+      @test_client.replace("")
+      Cli.run("context #{@admin_client}").should be
+      Cli.run("client delete #{client}").should be
+      Cli.output.string.should include "deleted"
+    end
   end
 
 end

@@ -20,25 +20,57 @@ require 'multi_json'
 
 module Stub
 
+class StubError < RuntimeError; end
+class BadHeader < StubError; end
+
 #------------------------------------------------------------------------------
 class Request
+
   attr_reader :headers, :body, :path, :method
-  def initialize; @state = :init end
+  def initialize; @state, @prelude = :init, "" end
+
+  private
+
+  def bslice(str, range)
+    # byteslice is available in ruby 1.9.3
+    str.respond_to?(:byteslice) ? str.byteslice(range) : str.slice(range)
+  end
+
+  def add_lines(str)
+    return @body << str if @state == :body
+    processed = 0
+    str.each_line("\r\n") do |ln|
+      processed += ln.bytesize
+      unless ln.chomp!("\r\n")
+        raise BadHeader unless ln.ascii_only?
+        return @prelude = ln # must be partial header at end of str
+      end
+      if @state == :init
+        start = ln.split(/\s+/)
+        @method, @path, @headers, @body = start[0].downcase, start[1], {}, ""
+        raise BadHeader unless @method.ascii_only? && @path.ascii_only?
+        @state = :headers
+      elsif ln.empty?
+        @state, @content_length = :body, headers["content-length"].to_i
+        return @body << bslice(str, processed..-1)
+      else
+        raise BadHeader unless ln.ascii_only?
+        key, sep, val = ln.partition(/:\s+/)
+        @headers[key.downcase] = val
+      end
+    end
+  end
+
+  public
 
   # adds data to the request, returns true if request is complete
-  def complete?(str)
-    if @state == :complete
-      # byteslice is available in ruby 1.9.3
-      str = @content_length >= body.bytesize ? str : body.respond_to?(:byteslice) ?
-          body.byteslice(@content_length, body.bytesize - @content_length) + str :
-          body[@content_length..-1] + str
-    end
-    add_lines str
-    if @state == :body
-      @content_length = headers["content-length"].to_i
-      @state = :complete unless body.bytesize < @content_length
-    end
-    @state == :complete
+  def completed?(str)
+    str, @prelude = @prelude + str, "" unless @prelude.empty?
+    add_lines(str)
+    return unless @state == :body && @body.bytesize >= @content_length
+    @prelude = bslice(@body, @content_length..-1)
+    @body = bslice(@body, 0..@content_length)
+    @state = :init
   end
 
   def cookies
@@ -46,26 +78,6 @@ class Request
     chdr.strip.split(/\s*;\s*/).each_with_object({}) do |pair, o|
       k, v = pair.split(/\s*=\s*/)
       o[k.downcase] = v
-    end
-  end
-
-  private
-
-  def add_lines(str)
-    str.each_line do |ln|
-      if @state == :complete || @state == :init
-        start = ln.chomp!.split(/\s+/)
-        @method, @path, @headers, @body = start[0].downcase, start[1], {}, ""
-        @state = :headers
-      elsif @state == :body
-        # TODO: figure out how to byteslice from ln to eos, append to @body, return
-        @body << ln
-      elsif (ln = ln.chomp).empty?
-        @state = :body
-      else
-        key, sep, val = ln.partition(/:\s+/)
-        @headers[key.downcase] = val
-      end
     end
   end
 
@@ -191,10 +203,10 @@ module Connection
 
   def receive_data(data)
     #req_handler.server.logger.debug "got #{data.bytesize} bytes: #{data.inspect}"
-    return unless req_handler.request.complete? data
+    return unless req_handler.request.completed? data
     req_handler.process
     send_data req_handler.reply.to_s
-    if req_handler.reply.headers[:connection] =~ /^close$/i || req_handler.server.status != :running
+    if req_handler.reply.headers['connection'] =~ /^close$/i || req_handler.server.status != :running
       close_connection_after_writing
     end
   rescue Exception => e

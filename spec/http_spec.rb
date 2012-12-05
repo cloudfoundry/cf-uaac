@@ -12,19 +12,26 @@
 #++
 
 require 'spec_helper'
+require 'fiber'
+require 'net/http'
+require 'em-http'
 require 'uaa/http'
+require 'cli/version'
 require 'stub/server'
 
 module CF::UAA
 
 class StubHttp < Stub::Base
-  route(:get, '/') { reply_in_kind "welcome to stub http, version #{VERSION}" }
+  route(:get, '/') { reply_in_kind "welcome to stub http, version #{CLI_VERSION}" }
   route( :get, '/bad') { reply.headers[:location] = ":;+)(\/"; reply_in_kind(3, "bad http status code") }
+end
+
+class HttpClient
+  include Http
 end
 
 describe Http do
 
-  include Http
   include SpecHelper
 
   before :all do
@@ -33,9 +40,8 @@ describe Http do
 
   after :all do @stub_http.stop if @stub_http end
 
-  it "should get something from stub server on a fiber" do
-    @async = true
-    frequest {
+  it "gets something from stub server on a fiber" do
+    frequest(true) {
       f = Fiber.current
       http = EM::HttpRequest.new("#{@stub_http.url}/").get
       http.errback { f.resume "error" }
@@ -47,9 +53,8 @@ describe Http do
     }.should match /welcome to stub http/
   end
 
-  it "should be able to use persistent connections from stubserver" do
-    @async = true
-    frequest {
+  it "uses persistent connections from stubserver" do
+    frequest(true) {
       f = Fiber.current
       conn = EM::HttpRequest.new("#{@stub_http.url}/")
       req1 = conn.get keepalive: true
@@ -63,11 +68,10 @@ describe Http do
     }.should match /welcome to stub http/
   end
 
-  it "should get something from stub server on a thread" do
+  it "gets something from stub server on a thread" do
     @async = false
-    resp = RestClient.get("#{@stub_http.url}/")
-    resp.code.should == 200
-    resp.body.should match /welcome to stub http/
+    resp = Net::HTTP.get(URI("#{@stub_http.url}/"))
+    resp.should match /welcome to stub http/
   end
 
   shared_examples_for "http client" do
@@ -86,22 +90,22 @@ describe Http do
     # This has had varied success but seems rather brittle. Currently I have opted
     # to just make the domain name invalid with tildes, but this may not test
     # the desired code paths
-    it "fail cleanly for a failed dns lookup" do
-      result = frequest { http_get("http://bad~host~name/") }
+    it "fails cleanly for a failed dns lookup" do
+      result = frequest(@on_fiber) { @client.http_get("http://bad~host~name/") }
       result.should be_an_instance_of BadTarget
     end
 
-    it "fail cleanly for a get operation, no connection to address" do
-      result = frequest { http_get("http://127.0.0.1:30000/") }
+    it "fails cleanly for a get operation, no connection to address" do
+      result = frequest(@on_fiber) { @client.http_get("http://127.0.0.1:30000/") }
       result.should be_an_instance_of BadTarget
     end
 
-    it "fail cleanly for a get operation with bad response" do
-      frequest { http_get(@stub_http.url, "/bad") }.should be_an_instance_of HTTPException
+    it "fails cleanly for a get operation with bad response" do
+      frequest(@on_fiber) { @client.http_get(@stub_http.url, "/bad") }.should be_an_instance_of HTTPException
     end
 
-    it "work for a get operation to a valid address" do
-      status, body, headers = frequest { http_get(@stub_http.url, "/") }
+    it "works for a get operation to a valid address" do
+      status, body, headers = frequest(@on_fiber) { @client.http_get(@stub_http.url, "/") }
       status.should == 200
       body.should match /welcome to stub http/
     end
@@ -112,20 +116,47 @@ describe Http do
         def initialize; @log = "" end
         def debug(str = nil) ; @log << (str ? str : yield) end
       end
-      @logger = clog = CustomLogger.new
+      @client.logger = clog = CustomLogger.new
       clog.log.should be_empty
-      frequest { http_get(@stub_http.url, "/") }
+      frequest(@on_fiber) { @client.http_get(@stub_http.url, "/") }
       clog.log.should_not be_empty
     end
   end
 
   context "on a fiber" do
-    before(:all) { @async = true }
+    before :all do
+      @on_fiber = true 
+      @client = HttpClient.new
+      @client.set_request_handler do |url, method, body, headers|
+        f = Fiber.current
+        connection = EventMachine::HttpRequest.new(url, connect_timeout: 2, inactivity_timeout: 2)
+        client = connection.setup_request(method, head: headers, body: body)
+
+        # This check is for proper error handling with em-http-request 1.0.0.beta.3
+        if defined?(EventMachine::FailedConnection) && connection.is_a?(EventMachine::FailedConnection)
+          raise BadTarget, "HTTP connection setup error: #{client.error}"
+        end
+
+        client.callback { f.resume [client.response_header.http_status, client.response, client.response_header] }
+        client.errback { f.resume [:error, client.error] }
+        result = Fiber.yield
+        if result[0] == :error
+          raise BadTarget, "connection failed" unless result[1] && result[1] != ""
+          raise BadTarget, "connection refused" if result[1].to_s =~ /ECONNREFUSED/
+          raise BadTarget, "unable to resolve address" if /unable.*server.*address/.match result[1]
+          raise HTTPException, result[1]
+        end
+        [result[0], result[1], Util.hash_keys!(result[2], :todash)]
+      end
+    end
     it_should_behave_like "http client"
   end
 
   context "on a thread" do
-    before(:all) { @async = false }
+    before :all do
+      @on_fiber = false 
+      @client = HttpClient.new
+    end
     it_should_behave_like "http client"
   end
 
