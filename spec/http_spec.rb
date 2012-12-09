@@ -28,6 +28,7 @@ end
 
 class HttpClient
   include Http
+  def get(target, path = nil, headers = {}) http_get(target, path, headers) end
 end
 
 describe Http do
@@ -91,21 +92,21 @@ describe Http do
     # to just make the domain name invalid with tildes, but this may not test
     # the desired code paths
     it "fails cleanly for a failed dns lookup" do
-      result = frequest(@on_fiber) { @client.http_get("http://bad~host~name/") }
+      result = frequest(@on_fiber) { @client.get("http://bad~host~name/") }
       result.should be_an_instance_of BadTarget
     end
 
     it "fails cleanly for a get operation, no connection to address" do
-      result = frequest(@on_fiber) { @client.http_get("http://127.0.0.1:30000/") }
+      result = frequest(@on_fiber) { @client.get("http://127.0.0.1:30000/") }
       result.should be_an_instance_of BadTarget
     end
 
     it "fails cleanly for a get operation with bad response" do
-      frequest(@on_fiber) { @client.http_get(@stub_http.url, "/bad") }.should be_an_instance_of HTTPException
+      frequest(@on_fiber) { @client.get(@stub_http.url, "/bad") }.should be_an_instance_of HTTPException
     end
 
     it "works for a get operation to a valid address" do
-      status, body, headers = frequest(@on_fiber) { @client.http_get(@stub_http.url, "/") }
+      status, body, headers = frequest(@on_fiber) { @client.get(@stub_http.url, "/") }
       status.should == 200
       body.should match /welcome to stub http/
     end
@@ -118,14 +119,14 @@ describe Http do
       end
       @client.logger = clog = CustomLogger.new
       clog.log.should be_empty
-      frequest(@on_fiber) { @client.http_get(@stub_http.url, "/") }
+      frequest(@on_fiber) { @client.get(@stub_http.url, "/") }
       clog.log.should_not be_empty
     end
   end
 
   context "on a fiber" do
     before :all do
-      @on_fiber = true 
+      @on_fiber = true
       @client = HttpClient.new
       @client.set_request_handler do |url, method, body, headers|
         f = Fiber.current
@@ -154,7 +155,7 @@ describe Http do
 
   context "on a thread" do
     before :all do
-      @on_fiber = false 
+      @on_fiber = false
       @client = HttpClient.new
     end
     it_should_behave_like "http client"
