@@ -1,32 +1,24 @@
 # CloudFoundry UAA Command Line Client
 
-Command line gem for interacting with the CloudFoundry UAA server.
+## Build the gem
 
-Set up a local ruby environment (so sudo not required):
+    $ bundle install
+    $ gem build cf-uaac.gemspec
 
-  `$ rvm use 1.9.2`
+## Install it
 
-or
+    $ gem install cf-uaac*.gem
 
-  `$ rbenv global 1.9.2-p180`
+or from rubygems
 
-see: https://rvm.io/ or http://rbenv.org/
+    $ gem install cf-uaac
 
-Build the gem
+## Run it
 
-  `$ bundle install`
-  `$ gem build cf-uaac.gemspec`
-
-Install it
-
-  `$ gem install cf-uaac*.gem`
-
-Run it
-
-  `$ uaac help`
-  `$ uaac target uaa.cloudfoundry.com`
-  `$ uaac token get <your-cf-username>`
-  `$ uaac token decode`
+    $ uaac help
+    $ uaac target uaa.cloudfoundry.com
+    $ uaac token get <your-cf-username>
+    $ uaac token decode
 
 To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
 
@@ -34,15 +26,15 @@ To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
 
 Run the tests with rake:
 
-  `$ bundle exec rake test`
+    $ bundle exec rake test
 
 Run the tests and see a fancy coverage report:
 
-  `$ bundle exec rake cov`
+    $ bundle exec rake cov
 
 Run integration tests (on a server running on localhost:8080/uaa):
 
-  `$ export UAA_CLIENT_ID="admin"`
-  `$ export UAA_CLIENT_SECRET="adminsecret"`
-  `$ export UAA_CLIENT_TARGET="http://localhost:8080/uaa"`
-  `$ bundle exec rspec spec/integration_spec.rb`
+    $ export UAA_CLIENT_ID="admin"
+    $ export UAA_CLIENT_SECRET="adminsecret"
+    $ export UAA_CLIENT_TARGET="http://localhost:8080/uaa"
+    $ bundle exec rspec spec/integration_spec.rb

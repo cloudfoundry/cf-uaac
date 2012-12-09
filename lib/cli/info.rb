@@ -37,7 +37,9 @@ class InfoCli < CommonCli
   desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
     info = misc_request { Misc.validation_key(Config.target, 
         (clientname if opts.key?(:client)), (clientsecret if opts.key?(:client))) }
-    Config.target_opts(signing_alg: info['alg'], signing_key: info['value'])
+    if info && info['value']
+      Config.target_opts(signing_alg: info['alg'], signing_key: info['value'])
+    end
     pp info
   end
 

@@ -30,7 +30,7 @@ class TokenCatcher < Stub::Base
     server.info.update(Util.hash_keys!(tkn.info, :tosym))
     reply.text "you are now logged in and can close this window"
   rescue TargetError => e
-    reply.text "#{e.message}:\r\n#{JSON.pretty_generate(e.info)}\r\n#{e.backtrace}"
+    reply.text "#{e.message}:\r\n#{Util.json_pretty(e.info)}\r\n#{e.backtrace}"
   rescue Exception => e
     reply.text "#{e.message}\r\n#{e.backtrace}"
   ensure

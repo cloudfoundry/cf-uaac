@@ -51,7 +51,7 @@ describe TokenCli do
       Cli.output.string.should include(a)
     end
     Cli.output.string.should include("email: sam@example.com")
-    #Cli.output.string.should include("user_name: #{@test_user}")
+    Cli.output.string.should include("user_name: #{@test_user}")
   end
 
   it "gets authenticated user information" do

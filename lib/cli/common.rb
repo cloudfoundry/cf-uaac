@@ -51,7 +51,7 @@ class CommonCli < Topic
 
   def complain(e)
     case e
-    when TargetError then gripe "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    when TargetError then gripe "\n#{e.message}:\n#{Util.json_pretty(e.info)}"
     when Exception
       gripe "\n#{e.class}: #{e.message}\n\n"
       gripe e.backtrace if trace?

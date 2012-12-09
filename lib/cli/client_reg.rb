@@ -19,26 +19,31 @@ class ClientCli < CommonCli
 
   topic "Client Application Registrations", "reg"
 
-  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list", 
-      authorities: "list", access_token_validity: "seconds", 
-      refresh_token_validity: "seconds", redirect_uri: "list" }
+  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list",
+      authorities: "list", access_token_validity: "seconds",
+      refresh_token_validity: "seconds", redirect_uri: "list",
+      autoapprove: "list" }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
   def client_info(defaults)
-    info = {client_id: defaults["client_id"] || opts[:client_id]}
+    info = {client_id: defaults[:client_id] || opts[:client_id]}
     info[:client_secret] = opts[:secret] if opts[:secret]
     del_attrs = Util.arglist(opts[:del_attrs], [])
     CLIENT_SCHEMA.each_with_object(info) do |(k, p), info|
       next if del_attrs.include?(k)
-      default = Util.strlist(defaults[k.to_s])
+      default = Util.strlist(defaults[k])
       if opts.key?(k)
         info[k] = opts[k].nil? || opts[k].empty? ? default : opts[k]
-      else 
-        info[k] = opts[:interact] ? 
+      else
+        info[k] = opts[:interact] ?
           info[k] = askd("#{k.to_s.gsub('_', ' ')} (#{p})", default): default
       end
-      info[k] = Util.arglist(info[k]) if p == "list"
-      info.delete(k) unless info[k]
+      if k == :autoapprove && (info[k] == "true" || info[k] == "false")
+        info[k] = !!(info[k] == "true")
+      else
+        info[k] = Util.arglist(info[k]) if p == "list"
+        info.delete(k) unless info[k]
+      end
     end
   end
 
@@ -58,24 +63,26 @@ class ClientCli < CommonCli
     pp scim_request { |cr|
       opts[:client_id] = clientname(name)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
-      defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
-      defaults.delete("client_id")
+      defaults = opts[:clone] ? Util.hash_keys!(cr.get(opts[:clone]), :tosym) : {}
+      defaults.delete(:client_id)
       cr.add(:client, client_info(defaults))
     }
   end
 
-  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys, 
+  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys,
       :del_attrs, :interact do |name|
     pp scim_request { |cr|
       opts[:client_id] = clientname(name)
-      info = client_info(cr.get(:client, opts[:client_id]))
-      info.length > 1 ? cr.put(:client, info) : gripe("Nothing to update. Use -i for interactive update.")
+      orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :tosym)
+      info = client_info(orig)
+      info.any? { |k, v| v != orig[k] } ? cr.put(:client, info) :
+          gripe("Nothing to update. Use -i for interactive update.")
     }
   end
 
   desc "client delete [name]", "Delete client registration" do |name|
-    pp scim_request { |cr| 
-      cr.delete(:client, clientname(name)) 
+    pp scim_request { |cr|
+      cr.delete(:client, clientname(name))
       "client registration deleted"
     }
   end
