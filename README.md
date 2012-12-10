@@ -1,17 +1,14 @@
 # CloudFoundry UAA Command Line Client
 
-## Build the gem
+## Install from rubgems
+
+    $ gem install cf-uaac
+
+## Build and install from source
 
     $ bundle install
     $ gem build cf-uaac.gemspec
-
-## Install it
-
     $ gem install cf-uaac*.gem
-
-or from rubygems
-
-    $ gem install cf-uaac
 
 ## Run it
 
@@ -32,9 +29,9 @@ Run the tests and see a fancy coverage report:
 
     $ bundle exec rake cov
 
-Run integration tests (on a server running on localhost:8080/uaa):
+Run integration tests (with a server running on localhost:8080/uaa):
 
     $ export UAA_CLIENT_ID="admin"
     $ export UAA_CLIENT_SECRET="adminsecret"
     $ export UAA_CLIENT_TARGET="http://localhost:8080/uaa"
-    $ bundle exec rspec spec/integration_spec.rb
+    $ bundle exec rake test
