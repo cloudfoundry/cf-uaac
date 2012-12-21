@@ -89,8 +89,7 @@ class Reply
   def initialize(status = 200) @status, @headers, @cookies, @body = status, {}, [], "" end
   def to_s
     reply = "HTTP/1.1 #{@status} OK\r\n"
-    headers["server"] = "stub server"
-    headers["date"] = DateTime.now.httpdate
+    headers["server"], headers["date"] = "stub server", DateTime.now.httpdate
     headers["content-length"] = body.bytesize
     headers.each { |k, v| reply << "#{k}: #{v}\r\n" }
     @cookies.each { |c| reply << "Set-Cookie: #{c}\r\n" }
@@ -168,8 +167,14 @@ class Base
     @server, @request, @reply, @match = server, Request.new, Reply.new, nil
   end
 
+  def default_route; reply_in_kind(404, error: "path not handled") end
+
   def process
     @reply = Reply.new
+    if server.root
+      return default_route unless request.path.start_with?(server.root)
+      request.path.slice!(0..server.root.length - 1)
+    end
     @match, handler = self.class.find_route(request)
     server.logger.debug "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}"
     send handler
@@ -177,7 +182,7 @@ class Base
     server.logger.debug "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers['content-type']}"
     #server.logger.debug "full reply is: #{reply.body.inspect}"
   rescue Exception => e
-    server.logger.debug "exception from route handler: #{e.message}"
+    server.logger.debug "exception processing request: #{e.message}"
     server.trace { e.backtrace }
     reply_in_kind 500, e
   end
@@ -188,10 +193,6 @@ class Base
     when /text\/html/ then reply.html(status, info)
     else reply.text(status, info)
     end
-  end
-
-  def default_route
-    reply_in_kind(404, error: "path not handled")
   end
 
 end
@@ -216,38 +217,62 @@ module Connection
   end
 end
 
-#--------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 class Server
-  attr_reader :host, :port, :status, :logger
+
+  private
+
+  def done
+    fail unless @connections.empty?
+    EM.stop if @em_thread && EM.reactor_running?
+    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
+    sleep 0.1 unless EM.reactor_thread? # give EM a chance to stop
+    logger.debug EM.reactor_running?? "server done but EM still running": "server really done"
+  end
+
+  def initialize_connection(conn)
+    logger.debug "starting connection"
+    fail unless EM.reactor_thread?
+    @connections << conn
+    conn.req_handler, conn.comm_inactivity_timeout = @req_handler.new(self), 30
+  end
+
+  public
+
+  attr_reader :host, :port, :status, :logger, :root
   attr_accessor :info
   def url; "http://#{@host}:#{@port}" end
   def trace(msg = nil, &blk); logger.trace(msg, &blk) if logger.respond_to?(:trace) end
 
-  def initialize(req_handler, logger = Logger.new($stdout), info = nil)
-    @req_handler, @logger, @info = req_handler, logger, info
+  def initialize(req_handler, options)
+    @req_handler = req_handler
+    @logger = options[:logger] || Logger.new($stdout)
+    @info = options[:info]
+    @host = options[:host] || "localhost"
+    @init_port = options[:port] || 0
+    @root = options[:root]
     @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
   end
 
-  def start(hostname = "localhost", port = nil)
+  def start
     raise ArgumentError, "attempt to start a server that's already running" unless @status == :stopped
-    @host = hostname
     logger.debug "starting #{self.class} server #{@host}"
     EM.schedule do
-      @sig = EM.start_server(@host, port || 0, Connection) { |c| initialize_connection(c) }
+      @sig = EM.start_server(@host, @init_port, Connection) { |c| initialize_connection(c) }
       @port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
-      logger.debug "#{self.class} server started at #{url}, signature #{@sig}"
+      logger.info "#{self.class} server started at #{url}"
     end
     @status = :running
     self
   end
 
-  def run_on_thread(hostname = "localhost", port = 0)
+  def run_on_thread
     raise ArgumentError, "can't run on thread, EventMachine already running" if EM.reactor_running?
     logger.debug { "starting eventmachine on thread" }
     cthred = Thread.current
     @em_thread = Thread.new do
       begin
-        EM.run { start(hostname, port); cthred.run }
+        EM.run { start; cthred.run }
         logger.debug "server thread done"
       rescue Exception => e
         logger.debug { "unhandled exception on stub server thread: #{e.message}" }
@@ -260,10 +285,10 @@ class Server
     self
   end
 
-  def run(hostname = "localhost", port = 0)
+  def run
     raise ArgumentError, "can't run, EventMachine already running" if EM.reactor_running?
     @em_thread = Thread.current
-    EM.run { start(hostname, port) }
+    EM.run { start }
     logger.debug "server and event machine done"
   end
 
@@ -284,25 +309,6 @@ class Server
     fail unless EM.reactor_thread?
     @connections.delete(conn)
     done if @status != :running && @connections.empty?
-  end
-
-  private
-
-  def done
-    fail unless @connections.empty?
-    EM.stop if @em_thread && EM.reactor_running?
-    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
-    sleep 0.1 unless EM.reactor_thread? # give EM a chance to stop
-    logger.debug EM.reactor_running? ?
-        "server done but EM still running" : "server really done"
-  end
-
-  def initialize_connection(conn)
-    logger.debug "starting connection"
-    fail unless EM.reactor_thread?
-    @connections << conn
-    conn.req_handler = @req_handler.new(self)
-    conn.comm_inactivity_timeout = 30
   end
 
 end

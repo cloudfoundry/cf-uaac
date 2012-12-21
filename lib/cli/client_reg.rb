@@ -63,7 +63,7 @@ class ClientCli < CommonCli
     pp scim_request { |cr|
       opts[:client_id] = clientname(name)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
-      defaults = opts[:clone] ? Util.hash_keys!(cr.get(opts[:clone]), :tosym) : {}
+      defaults = opts[:clone] ? Util.hash_keys!(cr.get(opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
       cr.add(:client, client_info(defaults))
     }
@@ -73,7 +73,7 @@ class ClientCli < CommonCli
       :del_attrs, :interact do |name|
     pp scim_request { |cr|
       opts[:client_id] = clientname(name)
-      orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :tosym)
+      orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :sym)
       info = client_info(orig)
       info.any? { |k, v| v != orig[k] } ? cr.put(:client, info) :
           gripe("Nothing to update. Use -i for interactive update.")

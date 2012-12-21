@@ -41,15 +41,17 @@ class GroupCli < CommonCli
   end
 
   desc "group delete [name]", "Delete group" do |name|
-    pp scim_request { |ua| 
+    pp scim_request { |ua|
       ua.delete(:delete, ua.id(:group, gname(name)))
-      "success" 
+      "success"
     }
   end
 
   def id_set(objs)
-    objs.each_with_object(Set.new) {|o, s| 
-      s << (o.is_a?(String)? o: (o["id"] || o["value"]))
+    objs.each_with_object(Set.new) {|o, s|
+      id = o.is_a?(String)? o: (o["id"] || o["value"] || o["memberid"])
+      raise BadResponse, "no id found in response of current members" unless id
+      s << id
     }
   end
 

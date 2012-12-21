@@ -57,11 +57,11 @@ class StubScim
         :entitlements, :roles, :x509certificates, :name, :addresses,
         :authorizations, :groups].to_set,
       client: [*COMMON_ATTRS, :client_id, :client_secret, :authorities,
-        :authorized_grant_types, :scope, :auto_approved_scope, 
+        :authorized_grant_types, :scope, :auto_approved_scope,
         :access_token_validity, :refresh_token_validity, :redirect_uri].to_set,
       group: [*COMMON_ATTRS, :displayname, :members, :owners, :readers].to_set }
   VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
-      client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS), 
+      client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS),
       group: Set.new(LEGAL_ATTRS[:group] - HIDDEN_ATTRS)}
   ATTR_NAMES = LEGAL_ATTRS.each_with_object(Set.new) { |(k, v), s|
     v.each {|a| s << a.to_s }
@@ -76,15 +76,15 @@ class StubScim
     attr if ATTR_NAMES.include?(attr) && !HIDDEN_ATTRS.include?(attr = attr.to_sym)
   end
 
-  def remove_attrs(stuff, attrs = HIDDEN_ATTRS) 
+  def remove_attrs(stuff, attrs = HIDDEN_ATTRS)
     attrs.each { |a| stuff.delete(a.to_s) }
     stuff
   end
 
-  def valid_id?(id, rtype) 
-    id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) 
+  def valid_id?(id, rtype)
+    id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype)
   end
-  
+
   def ref_by_name(name, rtype) @things_by_name[rtype.to_s + name.downcase] end
 
   def ref_by_id(id, rtype = nil)
@@ -134,10 +134,10 @@ class StubScim
   end
 
   def input(stuff)
-    thing = Util.hash_keys(stuff.dup, :tosym)
+    thing = Util.hash_keys(stuff.dup, :sym)
     REFERENCES.each {|a|
       next unless thing[a]
-      thing[a] = thing[a].each_with_object(Set.new) { |r, s| 
+      thing[a] = thing[a].each_with_object(Set.new) { |r, s|
         s << (r.is_a?(Hash)? r[:value] : r )
       }
     }
@@ -146,7 +146,7 @@ class StubScim
       thing[a] = thing[a].each_with_object({}) { |v, o|
         v = {value: v} unless v.is_a?(Hash)
         # enforce values are unique by type and value
-        k = URI.encode_www_form(t: [v[:type], v: v[:value]]).downcase
+        k = Util.encode_form(t: [v[:type], v: v[:value]]).downcase
         o[k] = v
       }
     }

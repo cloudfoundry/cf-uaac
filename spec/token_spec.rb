@@ -28,7 +28,7 @@ describe TokenCli do
     Config.yaml.should include("access_token")
     @test_pwd = "TesTpwd$%^"
     @test_user = "tEst_UseR+-#{Time.now.to_i}"
-    Cli.run("user add #{@test_user} -p #{@test_pwd} " + 
+    Cli.run("user add #{@test_user} -p #{@test_pwd} " +
         "--emails sam@example.com,joNES@sample.com --given_name SamueL " +
         "--phones 801-555-1212 --family_name jonES").should be
   end

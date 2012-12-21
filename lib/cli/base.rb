@@ -13,6 +13,7 @@
 
 require 'highline'
 require 'optparse'
+require 'json/pure'
 
 module CF; module UAA end end
 
@@ -56,10 +57,10 @@ class Topic
     @highline = HighLine.new(input, output)
   end
 
-  def ask(prompt); @highline.ask("#{prompt}:  ") end
-  def ask_pwd(prompt); @highline.ask("#{prompt}:  ") { |q| q.echo = '*' } end
-  def say(msg); @output.puts(msg); msg end
-  def gripe(msg); @output.puts(msg) end
+  def ask(prompt) @highline.ask("#{prompt}:  ") end
+  def ask_pwd(prompt) @highline.ask("#{prompt}:  ") { |q| q.echo = '*' } end
+  def say(msg) @output.puts(msg); msg end
+  def gripe(msg) @output.puts(msg) end
   def opts; @options end
 
   def terminal_columns
@@ -232,16 +233,15 @@ class BaseCli
     attr_accessor :overview, :topics, :global_options
   end
 
-  def self.preprocess_options(args, opts); end # to be implemented in subclass
-  def self.too_many_args(cmd); end # to be implemented in subclass
+  def self.preprocess_options(args, opts) end # to be implemented in subclass
+  def self.handle_bad_command(args, msg) end # to be implemented in subclass
 
   def self.run(args = ARGV)
     @input ||= $stdin
     @output ||= $stdout
-    @option_defs = {}
     @output.string = "" if @output.respond_to?(:string)
     args = args.split if args.respond_to?(:split)
-    @parser = OptionParser.new
+    @option_defs, @parser, orig = {}, OptionParser.new, args
     opts = @topics.each_with_object({}) do |tpc, o|
       tpc.option_defs.each do |k, optdef|
         @parser.on(*optdef) { |v| o[k] = v }
@@ -257,10 +257,13 @@ class BaseCli
         if v[:argc] == -1
           # variable args, leave args alone
         elsif args.length > v[:argc]
-          too_many_args(v[:parts].dup)
-          return nil
+          return handle_bad_command(orig, "Too many command line parameters given.")
         elsif args.length < v[:argc]
           (v[:argc] - args.length).times { args << nil }
+        end
+        opts.keys.each do |o|
+          next if v[:options].include?(o) || @global_options.include?(o)
+          return handle_bad_command(orig, "Invalid option: #{o}")
         end
         return tpc.new(self, opts, @input, @output).send(k, *args)
       end
@@ -269,7 +272,7 @@ class BaseCli
   rescue Exception => e
     @output.puts "#{File.basename($0)} error", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
   ensure
-    puts @output.string if opts[:trace] && @print_on_trace
+    puts @output.string if opts[:trace] && @print_on_trace && @output.respond_to?(:string)
   end
 
 end

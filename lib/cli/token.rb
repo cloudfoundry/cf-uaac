@@ -27,7 +27,7 @@ class TokenCatcher < Stub::Base
         Config.target_value(:token_target))
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
-    server.info.update(Util.hash_keys!(tkn.info, :tosym))
+    server.info.update(Util.hash_keys!(tkn.info, :sym))
     reply.text "you are now logged in and can close this window"
   rescue TargetError => e
     reply.text "#{e.message}:\r\n#{Util.json_pretty(e.info)}\r\n#{e.backtrace}"
@@ -71,7 +71,8 @@ class TokenCli < CommonCli
 
   def issuer_request(client_id, secret = nil)
     update_target_info
-    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_endpoint))
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret,
+        :token_target => Config.target_value(:token_endpoint))
   rescue Exception => e
     complain e
   end
@@ -99,7 +100,7 @@ class TokenCli < CommonCli
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
     return gripe "attempt to get token failed\n" unless token && token["access_token"]
-    tokinfo = TokenCoder.decode(token["access_token"], nil, nil, false)
+    tokinfo = TokenCoder.decode(token["access_token"], verify: false)
     Config.context = tokinfo["user_name"]
     Config.add_opts(user_id: tokinfo["user_id"])
     Config.add_opts token
@@ -140,8 +141,9 @@ class TokenCli < CommonCli
 
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
-        Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
-        client_id: client_id, client_secret: secret).run_on_thread("localhost", opts[:port])
+        logger: Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
+        info: {client_id: client_id, client_secret: secret},
+        port: opts[:port]).run_on_thread
     uri = issuer_request(client_id, secret) { |ti|
       secret ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
           ti.implicit_uri("#{catcher.url}/callback", opts[:scope])
@@ -154,7 +156,7 @@ class TokenCli < CommonCli
       sleep 5
       print "."
     end
-    Config.context = TokenCoder.decode(catcher.info[:access_token], nil, nil, false)[:user_name]
+    Config.context = TokenCoder.decode(catcher.info[:access_token], verify: false)[:user_name]
     Config.add_opts catcher.info
     say_success secret ? "authorization code" : "implicit"
     return unless opts[:vmc]
@@ -190,9 +192,9 @@ class TokenCli < CommonCli
       if opts[:client] && opts[:secret]
         pp Misc.decode_token(Config.target, opts[:client], opts[:secret], token, ttype)
       else
-		seckey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) !~ /rsa$/i)
-		pubkey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) =~ /rsa$/i)
-        info = TokenCoder.decode(token, seckey, pubkey, seckey || pubkey)
+        seckey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) !~ /rsa$/i)
+        pubkey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) =~ /rsa$/i)
+        info = TokenCoder.decode(token, skey: seckey, pkey: pubkey, verify: !!(seckey || pubkey))
         say seckey || pubkey ? "\nValid token signature\n\n": "\nNote: no key given to validate token signature\n\n"
         pp info
       end

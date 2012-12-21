@@ -74,7 +74,7 @@ class StubUAAConn < Stub::Base
   route :get, '/token_key' do reply_in_kind(alg: "none", value: "none") end
 
   route :post, '/password/score', "content-type" => %r{application/x-www-form-urlencoded} do
-    info = Util.decode_form_to_hash(request.body)
+    info = Util.decode_form(request.body)
     return bad_request "no password to score" unless pwd = info["password"]
     score = pwd.length > 10 || pwd.length < 0 ? 10 : pwd.length
     reply_in_kind(score: score, requiredScore: 0)
@@ -110,7 +110,7 @@ class StubUAAConn < Stub::Base
   end
 
   route :post, '/login.do', "content-type" => %r{application/x-www-form-urlencoded} do
-    creds = Util.decode_form_to_hash(request.body)
+    creds = Util.decode_form(request.body)
     user = find_user(creds['username'], creds['password'])
     reply.headers[:location] = "login"
     reply.status = 302
@@ -118,7 +118,7 @@ class StubUAAConn < Stub::Base
   end
 
   route :get, %r{^/logout.do(\?|$)(.*)} do
-    query = Util.decode_form_to_hash(match[2])
+    query = Util.decode_form(match[2])
     reply.headers[:location] = query['redirect_uri'] || "login"
     reply.status = 302
     reply.set_cookie(:stubsession, encode_cookie, max_age: -1)
@@ -140,7 +140,7 @@ class StubUAAConn < Stub::Base
       token_body[:email] = primary_email(user[:emails])
       token_body[:user_name] = user[:username]
     end
-    info = { access_token: TokenCoder.encode(token_body, nil, nil, 'none'),
+    info = { access_token: TokenCoder.encode(token_body, :algorithm => 'none'),
         token_type: "bearer", expires_in: interval, scope: scope}
     info[:state] = state if state
     info[:refresh_token] = "universal_refresh_token" if refresh
@@ -169,14 +169,14 @@ class StubUAAConn < Stub::Base
   def redir_with_fragment(cburi, params)
     reply.status = 302
     uri = URI.parse(cburi)
-    uri.fragment = URI.encode_www_form(params)
+    uri.fragment = Util.encode_form(params)
     reply.headers[:location] = uri.to_s
   end
 
   def redir_with_query(cburi, params)
     reply.status = 302
     uri = URI.parse(cburi)
-    uri.query = URI.encode_www_form(params)
+    uri.query = Util.encode_form(params)
     reply.headers[:location] = uri.to_s
   end
 
@@ -195,7 +195,7 @@ class StubUAAConn < Stub::Base
   end
 
   route [:post, :get], %r{^/oauth/authorize\?(.*)} do
-    query = Util.decode_form_to_hash(match[1])
+    query = Util.decode_form(match[1])
     client = server.scim.get_by_name(query["client_id"], :client)
     cburi, state = query["redirect_uri"], query["state"]
 
@@ -209,7 +209,7 @@ class StubUAAConn < Stub::Base
       end
       if request.method == "post"
         unless request.headers["content-type"] =~ %r{application/x-www-form-urlencoded} &&
-            (creds = Util.decode_form_to_hash(request.body)) &&
+            (creds = Util.decode_form(request.body)) &&
             creds["source"] && creds["source"] == "credentials"
           return redir_err_f(cburi, state, "invalid_request")
         end
@@ -275,7 +275,7 @@ class StubUAAConn < Stub::Base
       reply.headers[:www_authenticate] = "basic"
       return reply.json(401, error: "invalid_client")
     end
-    return if bad_params?(params = Util.decode_form_to_hash(request.body), ['grant_type'])
+    return if bad_params?(params = Util.decode_form(request.body), ['grant_type'])
     unless client[:authorized_grant_types].include?(params['grant_type'])
       return reply.json(400, error: "unauthorized_client")
     end
@@ -419,7 +419,7 @@ class StubUAAConn < Stub::Base
   route :get, %r{^/(Users|Groups)(\?|$)(.*)} do
     return unless valid_token("scim.read")
     rtype = match[1] == "Users"? :user : :group
-    page_query(rtype, Util.decode_form_to_hash(match[3], :down), StubScim::VISIBLE_ATTRS[rtype])
+    page_query(rtype, Util.decode_form(match[3], :down), StubScim::VISIBLE_ATTRS[rtype])
   end
 
   route :get, %r{^/(Users|Groups)/([^/]+)$} do
@@ -449,7 +449,7 @@ class StubUAAConn < Stub::Base
   end
 
   route :get, %r{^/ids/Users(\?|$)(.*)} do
-    page_query(:user, Util.decode_form_to_hash(match[2], :down), [:username, :id])
+    page_query(:user, Util.decode_form(match[2], :down), [:username, :id])
   end
 
 end
@@ -459,7 +459,9 @@ class StubUAA < Stub::Server
   attr_accessor :reply_badly
   attr_reader :scim, :auto_groups
 
-  def initialize(boot_client = "admin", boot_secret = "adminsecret", logger = Util.default_logger)
+  def initialize(options = {})
+    client = options[:boot_client] || "admin"
+    secret = options[:boot_secret] || "adminsecret"
     @scim = StubScim.new
     @auto_groups = ["password.write", "openid"]
         .each_with_object([]) { |g, o| o << @scim.add(:group, 'displayname' => g) }
@@ -467,16 +469,17 @@ class StubUAA < Stub::Server
         .each { |g| @scim.add(:group, 'displayname' => g) }
     gids = ["clients.write", "clients.read", "clients.secret", "uaa.admin"]
         .each_with_object([]) { |s, o| o << @scim.add(:group, 'displayname' => s) }
-    @scim.add(:client, 'client_id' => boot_client, 'client_secret' => boot_secret,
+    @scim.add(:client, 'client_id' => client, 'client_secret' => secret,
         'authorized_grant_types' => ["client_credentials"], 'authorities' => gids,
         'access_token_validity' => 60 * 60 * 24 * 7)
     @scim.add(:client, 'client_id' => "vmc", 'authorized_grant_types' => ["implicit"],
         'scope' => [@scim.id("openid", :group), @scim.id("password.write", :group)],
         'access_token_validity' => 5 * 60 )
     info = { commit_id: "not implemented",
-        app: {name: "Stub UAA", version: CLI_VERSION, description: "User Account and Authentication Service, test server"},
+        app: {name: "Stub UAA", version: CLI_VERSION,
+            description: "User Account and Authentication Service, test server"},
         prompts: {username: ["text", "Username"], password: ["password","Password"]} }
-    super(StubUAAConn, logger, info)
+    super(StubUAAConn, options.merge(info: info, logger: options[:logger] || Util.default_logger))
   end
 
 end

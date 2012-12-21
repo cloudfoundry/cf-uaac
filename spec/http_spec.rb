@@ -36,7 +36,8 @@ describe Http do
   include SpecHelper
 
   before :all do
-    @stub_http = Stub::Server.new(StubHttp, Util.default_logger(:info)).run_on_thread
+    #Util.default_logger(:trace)
+    @stub_http = Stub::Server.new(StubHttp, logger: Util.default_logger).run_on_thread
   end
 
   after :all do @stub_http.stop if @stub_http end
@@ -147,7 +148,7 @@ describe Http do
           raise BadTarget, "unable to resolve address" if /unable.*server.*address/.match result[1]
           raise HTTPException, result[1]
         end
-        [result[0], result[1], Util.hash_keys!(result[2], :todash)]
+        [result[0], result[1], Util.hash_keys!(result[2], :dash)]
       end
     end
     it_should_behave_like "http client"

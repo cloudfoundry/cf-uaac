@@ -2,6 +2,55 @@
 
 $:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
 require 'stub/uaa'
+require 'cli/base'
+require 'cli/version'
 
-CF::UAA::Util.default_logger(:trace)
-CF::UAA::StubUAA.new.run('localhost', 8080)
+module CF::UAA
+
+Util.default_logger(:trace)
+
+class ServerTopic < Topic
+  topic "", "run"
+  desc "version", "Display version" do say "version #{CLI_VERSION}"  end
+  define_option :trace, "--[no-]trace", "-t", "display extra verbose debug information"
+  define_option :debug, "--[no-]debug", "-d", "display debug information"
+  define_option :help, "--[no-]help", "-h", "display helpful information"
+  define_option :version, "--[no-]version", "-v", "show version"
+
+  desc "help [topic|command...]", "Display summary or details of command or topic" do |*args|
+    args.empty? ? say_help : say_command_help(args)
+  end
+
+  define_option :port, "--port <number>", "-p", "port for server to listen on"
+  define_option :root, "--root <path>", "-r", "root path of UAA resources, e.g. /uaa"
+  desc "run", "Run the UAA server", :port, :root do
+    CF::UAA::StubUAA.new(port: (opts[:port] || "8080").to_i, root: opts[:root],
+        logger: Util.default_logger).run
+  end
+
+end
+
+class ServerCli < BaseCli
+  @overview = "UAA Stub Server Command Line\nProvides partial uaa server support suitable for testing uaac."
+  @topics = [ServerTopic]
+  @global_options = [:help, :version, :debug, :trace]
+  @input, @output = $stdin, $stdout
+
+  def self.handle_bad_command(args, msg)
+    @output.puts "\n#{msg}"
+    run args.unshift("help")
+    nil
+  end
+
+  def self.preprocess_options(args, opts)
+    return args.replace(["version"]) if opts[:version]
+    return args.unshift("help") if args.empty? || opts[:help] && args[0] != "version"
+    Util.default_logger(opts[:trace]? :trace: opts[:debug]? :debug: :warn, @output)
+  end
+
+end
+
+end
+
+exit CF::UAA::ServerCli.run ? 0 : 1
+

@@ -23,7 +23,7 @@ describe GroupCli do
   before :all do
     #Util.default_logger(:trace)
     Cli.configure("", nil, StringIO.new, true)
-    setup_target(authorities: "clients.read,scim.read,scim.write")
+    setup_target(authorities: "clients.read,scim.read,scim.write,uaa.admin")
     Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
     @test_user, @test_pwd = "sam_#{Time.now.to_i}", "correcthorsebatterystaple"
     @test_group = "JaNiToRs_#{Time.now.to_i}"

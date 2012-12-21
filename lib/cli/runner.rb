@@ -25,16 +25,17 @@ class Cli < BaseCli
   @topics = [MiscCli, InfoCli, TokenCli, UserCli, GroupCli, ClientCli]
   @global_options = [:help, :version, :debug, :trace, :config]
 
-  def self.configure(config_file = "", input = $stdin, output = $stdout, 
+  def self.configure(config_file = "", input = $stdin, output = $stdout,
       print_on_trace = false)
     @config_file, @input, @output = config_file, input, output
     @print_on_trace = print_on_trace
     self
   end
 
-  def self.too_many_args(cmd)
-    @output.puts "\nToo many command line parameters given."
-    run cmd.unshift("help")
+  def self.handle_bad_command(args, msg)
+    @output.puts "\n#{msg}"
+    run args.unshift("help")
+    nil
   end
 
   def self.preprocess_options(args, opts)
