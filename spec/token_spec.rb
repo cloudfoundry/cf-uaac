@@ -35,11 +35,6 @@ describe TokenCli do
 
   after :all do cleanup_target end
 
-  it "gets the server signing key" do
-    Cli.run("signing key -c #{@test_client} -s #{@test_secret}").should be
-    Cli.output.string.should include 'alg:', 'value:'
-  end
-
   it "logs in with implicit grant & posted credentials as a user" do
     Cli.run("token get #{@test_user} #{@test_pwd}").should be
     Cli.output.string.should include("Successfully fetched token")
@@ -100,6 +95,11 @@ describe TokenCli do
     ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id", "openid", "password.write"].each do |a|
       Cli.output.string.should include a
     end
+  end
+
+  it "gets the server signing key" do
+    Cli.run("signing key -c #{@test_client} -s #{@test_secret}").should be
+    Cli.output.string.should include 'alg:', 'value:'
   end
 
   it "uses the token endpoint given by the login server" do

@@ -24,7 +24,7 @@ class TokenCatcher < Stub::Base
     server.logger.debug "processing grant for path #{request.path}"
     secret = server.info.delete(:client_secret)
     ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret,
-        Config.target_value(:token_target))
+        token_target: Config.target_value(:token_target))
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
     server.info.update(Util.hash_keys!(tkn.info, :sym))
@@ -72,7 +72,7 @@ class TokenCli < CommonCli
   def issuer_request(client_id, secret = nil)
     update_target_info
     yield TokenIssuer.new(Config.target.to_s, client_id, secret,
-        :token_target => Config.target_value(:token_endpoint))
+        token_target: Config.target_value(:token_endpoint))
   rescue Exception => e
     complain e
   end
@@ -156,7 +156,7 @@ class TokenCli < CommonCli
       sleep 5
       print "."
     end
-    Config.context = TokenCoder.decode(catcher.info[:access_token], verify: false)[:user_name]
+    Config.context = TokenCoder.decode(catcher.info[:access_token], verify: false)["user_name"]
     Config.add_opts catcher.info
     say_success secret ? "authorization code" : "implicit"
     return unless opts[:vmc]
