@@ -32,7 +32,7 @@ class StubUAAConn < Stub::Base
 
   def valid_token(required_scope)
     return nil unless (ah = request.headers["authorization"]) && (ah = ah.split(' '))[0] =~ /^bearer$/i
-    contents = TokenCoder.decode(ah[1])
+    contents = TokenCoder.decode(ah[1], accept_algorithms: "none")
     contents["scope"], required_scope = Util.arglist(contents["scope"]), Util.arglist(required_scope)
     return contents if required_scope.nil? || !(required_scope & contents["scope"]).empty?
     reply_in_kind(403, error: "insufficient_scope",
