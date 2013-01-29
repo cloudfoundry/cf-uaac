@@ -24,25 +24,20 @@ class GroupCli < CommonCli
   def gname(name) name || ask("Group name") end
 
   desc "groups [filter]", "List groups", :attrs, :start, :count do |filter|
-    pp scim_request { |ua|
-      query = { attributes: opts[:attrs], filter: filter }
-      opts[:start] || opts[:count] ?
-        ua.query_groups(query.merge!(startIndex: opts[:start], count: opts[:count])):
-        ua.all_pages(:group, query)
-    }
+    scim_common_list(:group, filter)
   end
 
-  desc "group get [name]", "Get specific group information" do |name|
-    pp scim_request { |ua| ua.get(:group, ua.id(:group, gname(name))) }
+  desc "group get [name]", "Get specific group information", :attrs do |name|
+    pp scim_request { |sr| scim_get_object(sr, :group, gname(name), opts[:attrs]) }
   end
 
   desc "group add [name]", "Adds a group" do |name|
-    pp scim_request { |ua| ua.add(:group, displayName: gname(name)) }
+    pp scim_request { |scim| scim.add(:group, displayName: gname(name)) }
   end
 
   desc "group delete [name]", "Delete group" do |name|
-    pp scim_request { |ua|
-      ua.delete(:delete, ua.id(:group, gname(name)))
+    pp scim_request { |scim|
+      scim.delete(:group, scim.id(:group, gname(name)))
       "success"
     }
   end
@@ -55,31 +50,46 @@ class GroupCli < CommonCli
     }
   end
 
-  desc "member add [name] [members...]", "add members to a group" do |name, *members|
-    pp scim_request { |ua|
-      group = ua.get(:group, ua.id(:group, gname(name)))
-      old_ids = id_set(group["members"] || [])
-      new_ids = id_set(ua.ids(:user, *members))
-      raise "not all members found, none added" unless new_ids.size == members.size
-      group["members"] = (old_ids + new_ids).to_a
-      raise "no new members given" unless group["members"].size > old_ids.size
-      ua.put(:group, group)
+  def update_members(scim, name, attr, users, add = true)
+      group = scim_get_object(scim, :group, gname(name))
+      old_ids = id_set(group[attr] || [])
+      new_ids = id_set(scim.ids(:user, *users))
+      if add
+        raise "not all users found, none added" unless new_ids.size == users.size
+        group[attr] = (old_ids + new_ids).to_a
+        raise "no new users given" unless group[attr].size > old_ids.size
+      else
+        raise "not all users found, none deleted" unless new_ids.size == users.size
+        group[attr] = (old_ids - new_ids).to_a
+        raise "no existing users to delete" unless group[attr].size < old_ids.size
+        group.delete(attr) if group[attr].empty?
+      end
+      scim.put(:group, group)
       "success"
-    }
   end
 
-  desc "member delete [name] [members...]", "remove members from a group" do |name, *members|
-    pp scim_request { |ua|
-      group = ua.get(:group, ua.id(:group, gname(name)))
-      old_ids = id_set(group["members"] || [])
-      new_ids = id_set(ua.ids(:user, *members))
-      raise "not all members found, none deleted" unless new_ids.size == members.size
-      group["members"] = (old_ids - new_ids).to_a
-      raise "no existing members to delete" unless group["members"].size < old_ids.size
-      group.delete("members") if group["members"].empty?
-      ua.put(:group, group)
-      "success"
-    }
+  desc "member add [name] [users...]", "add members to a group" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "members", users) }
+  end
+
+  desc "member delete [name] [users...]", "remove members from a group" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "members", users, false) }
+  end
+
+  desc "group reader add [name] [users...]", "add users who can read the members" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "readers", users) }
+  end
+
+  desc "group reader delete [name] [users...]", "delete users who can read members" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "readers", users, false) }
+  end
+
+  desc "group writer add [name] [users...]", "add users who can modify group" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "writers", users) }
+  end
+
+  desc "group writer delete [name] [users...]", "remove user who can modify group" do |name, *users|
+    pp scim_request { |scim| update_members(scim, name, "writers", users, false) }
   end
 
 end

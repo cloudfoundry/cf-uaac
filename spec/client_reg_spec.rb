@@ -56,7 +56,7 @@ describe ClientCli do
 
     it "fails to create a user account as test client" do
       Cli.run("user add #{@test_user} -p #{@test_pwd}").should be_nil
-      Cli.output.string.should include "insufficient_scope"
+      Cli.output.string.should include "access_denied"
     end
 
     context "as updated client" do
@@ -73,7 +73,7 @@ describe ClientCli do
       it "fails to create a user account with old token" do
         Cli.run("context #{@test_client}").should be
         Cli.run("user add #{@test_user} -p #{@test_pwd}").should be_nil
-        Cli.output.string.should include "insufficient_scope"
+        Cli.output.string.should include "access_denied"
       end
 
       it "creates a user account with a new token" do
@@ -81,7 +81,7 @@ describe ClientCli do
         Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
         Cli.run("token decode")
         Cli.run("user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com --family_name #{@test_user.capitalize} --given_name joe").should be
-        Cli.output.string.should_not include "insufficient_scope"
+        Cli.output.string.should_not include "access_denied"
         Cli.run("user get #{@test_user}").should be
         Cli.output.string.should include @test_user.capitalize
       end
@@ -89,15 +89,15 @@ describe ClientCli do
 
   end
 
-  context "as admin client" do
-    it "deletes a client registration" do
-      client = @test_client.dup
-      @test_client.replace("")
-      Cli.run("context #{@admin_client}").should be
-      Cli.run("client delete #{client}").should be
-      Cli.output.string.should include "deleted"
-    end
-  end
+#  context "as admin client" do
+#    it "deletes a client registration" do
+#      client = @test_client.dup
+#      @test_client.replace("")
+#      Cli.run("context #{@admin_client}").should be
+#      Cli.run("client delete #{client}").should be
+#      Cli.output.string.should include "deleted"
+#    end
+#  end
 
 end
 

@@ -30,22 +30,21 @@ class StubUAAConn < Stub::Base
     end
   end
 
-  def valid_token(required_scope)
-    return nil unless (ah = request.headers["authorization"]) && (ah = ah.split(' '))[0] =~ /^bearer$/i
-    contents = TokenCoder.decode(ah[1], accept_algorithms: "none")
-    contents["scope"], required_scope = Util.arglist(contents["scope"]), Util.arglist(required_scope)
-    return contents if required_scope.nil? || !(required_scope & contents["scope"]).empty?
-    reply_in_kind(403, error: "insufficient_scope",
-        error_description: "required scope #{Util.strlist(required_scope)}")
-    nil
-  end
-
+  def bad_request(msg = nil); reply_in_kind(400, error: "bad request#{msg ? ',' : ''} #{msg}") end
+  def not_found(name = nil); reply_in_kind(404, error: "#{name} not found") end
+  def access_denied(msg = "access denied") reply_in_kind(403, error: "access_denied", error_description: msg) end
   def ids_to_names(ids); ids ? ids.map { |id| server.scim.name(id) } : [] end
   def names_to_ids(names, rtype); names ? names.map { |name| server.scim.id(name, rtype) } : [] end
-  def bad_request(message = nil); reply_in_kind(400, error: "bad request#{message ? ',' : ''} #{message}") end
-  def not_found(name = nil); reply_in_kind(404, error: "#{name} not found") end
   def encode_cookie(obj = {}) Util.json_encode64(obj) end
   def decode_cookie(str) Util.json.decode64(str) end
+
+  def valid_token(accepted_scope)
+    return nil unless (ah = request.headers["authorization"]) && (ah = ah.split(' '))[0] =~ /^bearer$/i
+    contents = TokenCoder.decode(ah[1], accept_algorithms: "none")
+    contents["scope"], accepted_scope = Util.arglist(contents["scope"]), Util.arglist(accepted_scope)
+    return contents if accepted_scope.nil? || !(accepted_scope & contents["scope"]).empty?
+    access_denied("accepted scope #{Util.strlist(accepted_scope)}")
+  end
 
   def primary_email(emails)
     return unless emails
@@ -325,12 +324,12 @@ class StubUAAConn < Stub::Base
   # client endpoints
   #
   def client_to_scim(info)
-    ['authorities', 'scope', 'auto_approve_scope'].each { |a| info[a] = names_to_ids(info[a], :group) if info.key?(a) }
+    ['authorities', 'scope', 'autoapprove'].each { |a| info[a] = names_to_ids(info[a], :group) if info.key?(a) }
     info
   end
 
   def scim_to_client(info)
-    [:authorities, :scope, :auto_approve_scope].each { |a| info[a] = ids_to_names(info[a]) if info.key?(a) }
+    [:authorities, :scope, :autoapprove].each { |a| info[a] = ids_to_names(info[a]) if info.key?(a) }
     info.delete(:id)
     info
   end
@@ -362,7 +361,7 @@ class StubUAAConn < Stub::Base
 
   route :delete, %r{^/oauth/clients/([^/]+)$} do
     return unless valid_token("clients.write")
-    return not_found(match[1]) unless server.scim.remove(server.scim.id(match[1], :client))
+    return not_found(match[1]) unless server.scim.delete(server.scim.id(match[1], :client))
   end
 
   route :put, %r{^/oauth/clients/([^/]+)/secret$}, "content-type" => %r{application/json} do
@@ -390,11 +389,25 @@ class StubUAAConn < Stub::Base
     reply_in_kind server.scim.get(id, rtype, *StubScim::VISIBLE_ATTRS[rtype])
   end
 
+  def obj_access?(rtype, oid, perm)
+    major_scope = perm == :writers ? "scim.write" : "scim.read"
+    return unless tkn = valid_token("#{major_scope} scim.me")
+    return tkn if tkn["scope"].include?(major_scope) ||
+        rtype == :group && server.scim.is_member(oid, tkn["user_id"], perm)
+    access_denied
+  end
+
   route :put, %r{^/(Users|Groups)/([^/]+)$}, "content-type" => %r{application/json} do
-    return unless valid_token("scim.write")
     rtype = match[1] == "Users"? :user : :group
-    id = server.scim.update(match[2], Util.json_parse(request.body, :down), request.headers[:match_if], rtype)
-    reply_in_kind server.scim.get(id, rtype, *StubScim::VISIBLE_ATTRS[rtype])
+    return unless obj_access?(rtype, match[2], :writers)
+    version = request.headers['if-match']
+    version = version.to_i if version.to_i.to_s == version
+    begin
+      id = server.scim.update(match[2], Util.json_parse(request.body, :down), version, rtype)
+      reply_in_kind server.scim.get(id, rtype, *StubScim::VISIBLE_ATTRS[rtype])
+    rescue BadVersion; reply_in_kind(409, error: "invalid object version")
+    rescue NotFound; not_found(match[2])
+    end
   end
 
   def sanitize_int(arg, default, min, max = nil)
@@ -403,7 +416,7 @@ class StubUAAConn < Stub::Base
     max && i > max ? max : i
   end
 
-  def page_query(rtype, query, attrs)
+  def page_query(rtype, query, attrs, acl = nil, acl_id = nil)
     if query['attributes']
       attrs = attrs & Util.arglist(query['attributes']).each_with_object([]) {|a, o|
         o << a.to_sym if StubScim::ATTR_NAMES.include?(a = a.downcase)
@@ -412,26 +425,33 @@ class StubUAAConn < Stub::Base
     start = sanitize_int(query['startindex'], 1, 1)
     count = sanitize_int(query['count'], 15, 1, 3000)
     return bad_request("invalid startIndex or count") unless start && count
-    info, total = server.scim.find(rtype, start - 1, count, query['filter'], attrs)
+    info, total = server.scim.find(rtype, start: start - 1, count: count,
+        filter: query['filter'], attrs: attrs, acl: acl, acl_id: acl_id)
     reply_in_kind(resources: info, itemsPerPage: info.length, startIndex: start, totalResults: total)
   end
 
   route :get, %r{^/(Users|Groups)(\?|$)(.*)} do
-    return unless valid_token("scim.read")
     rtype = match[1] == "Users"? :user : :group
-    page_query(rtype, Util.decode_form(match[3], :down), StubScim::VISIBLE_ATTRS[rtype])
+    return unless tkn = valid_token("scim.read scim.me")
+    acl = acl_id = nil
+    unless tkn["scope"].include?("scim.read")
+      acl, acl_id = :readers, tkn["user_id"]
+      return access_denied unless rtype == :group && acl_id
+    end
+    page_query(rtype, Util.decode_form(match[3], :down),
+        StubScim::VISIBLE_ATTRS[rtype], acl, acl_id)
   end
 
   route :get, %r{^/(Users|Groups)/([^/]+)$} do
-    return unless valid_token("scim.read")
     rtype = match[1] == "Users"? :user : :group
+    return unless obj_access?(rtype, match[2], :readers)
     return not_found(match[2]) unless obj = server.scim.get(match[2], rtype, *StubScim::VISIBLE_ATTRS[rtype])
     reply_in_kind(obj)
   end
 
   route :delete, %r{^/(Users|Groups)/([^/]+)$} do
     return unless valid_token("scim.write")
-    not_found(match[2]) unless server.scim.remove(match[2], match[1] == "Users"? :user : :group)
+    not_found(match[2]) unless server.scim.delete(match[2], match[1] == "Users"? :user : :group)
   end
 
   route :put, %r{^/Users/([^/]+)/password$}, "content-type" => %r{application/json} do
@@ -465,7 +485,7 @@ class StubUAA < Stub::Server
     @scim = StubScim.new
     @auto_groups = ["password.write", "openid"]
         .each_with_object([]) { |g, o| o << @scim.add(:group, 'displayname' => g) }
-    ["scim.read", "scim.write", "uaa.resource"]
+    ["scim.read", "scim.write", "scim.me", "uaa.resource"]
         .each { |g| @scim.add(:group, 'displayname' => g) }
     gids = ["clients.write", "clients.read", "clients.secret", "uaa.admin"]
         .each_with_object([]) { |s, o| o << @scim.add(:group, 'displayname' => s) }

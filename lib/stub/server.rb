@@ -176,7 +176,7 @@ class Base
       request.path.slice!(0..server.root.length - 1)
     end
     @match, handler = self.class.find_route(request)
-    server.logger.debug "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}"
+    server.logger.debug "processing #{request.method} to path #{request.path}"
     send handler
     reply.headers['connection'] ||= request.headers['connection'] if request.headers['connection']
     server.logger.debug "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers['content-type']}"

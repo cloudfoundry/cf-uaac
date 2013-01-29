@@ -31,8 +31,9 @@ class StubScim
   READ_ONLY_ATTRS = [:rtype, :id, :meta, :groups].to_set
   BOOLEANS = [:active].to_set
   NUMBERS = [:access_token_validity, :refresh_token_validity].to_set
-  GROUPS = [:groups, :auto_approved_scope, :scope, :authorities].to_set
-  REFERENCES = [*GROUPS, :members, :owners, :readers].to_set # users or groups
+  GROUPS = [:groups, :autoapprove, :scope, :authorities].to_set # values must be group ID
+  MEMBERSHIP =  [:members, :writers, :readers].to_set # users or groups
+  REFERENCES = GROUPS + MEMBERSHIP # users or groups
   ENUMS = { authorized_grant_types: ["client_credentials", "implicit",
       "authorization_code", "password", "refresh_token"].to_set }
   GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
@@ -57,9 +58,9 @@ class StubScim
         :entitlements, :roles, :x509certificates, :name, :addresses,
         :authorizations, :groups].to_set,
       client: [*COMMON_ATTRS, :client_id, :client_secret, :authorities,
-        :authorized_grant_types, :scope, :auto_approved_scope,
+        :authorized_grant_types, :scope, :autoapprove,
         :access_token_validity, :refresh_token_validity, :redirect_uri].to_set,
-      group: [*COMMON_ATTRS, :displayname, :members, :owners, :readers].to_set }
+      group: [*COMMON_ATTRS, :displayname, :members, :writers, :readers].to_set }
   VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
       client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS),
       group: Set.new(LEGAL_ATTRS[:group] - HIDDEN_ATTRS)}
@@ -123,7 +124,7 @@ class StubScim
         when *NUMBERS then v.is_a?(Integer)
         when *GENERAL_MULTI then valid_multi?(v, GENERAL_SUBATTRS, true)
         when *GROUPS then valid_ids?(v, :group)
-        when *REFERENCES then valid_ids?(v)
+        when *MEMBERSHIP then valid_ids?(v)
         when ENUMS[k] then ENUMS[k].include?(v)
         when *EXPLICIT_SINGLE.keys then valid_complex?(v, EXPLICIT_SINGLE[k])
         when *EXPLICIT_MULTI.keys then valid_multi?(v, EXPLICIT_MULTI[k])
@@ -158,7 +159,11 @@ class StubScim
     attrs.each_with_object({}) {|a, o|
       next unless thing[a]
       case a
-      when *REFERENCES then o[a] = thing[a].to_a
+      when *MEMBERSHIP
+        o[a] = thing[a].each_with_object([]) { |v, a|
+          a << { value: v, type: ref_by_id(v)[:rtype] }
+        }
+      when *GROUPS then o[a] = thing[a].to_a
       when *GENERAL_MULTI then o[a] = thing[a].values
       else o[a] = thing[a]
       end
@@ -169,8 +174,14 @@ class StubScim
     members.each {|m| (m[:groups] ||= Set.new) << gid if m = ref_by_id(m, :user)} if members
   end
 
-  def remove_user_groups(gid, members)
+  def delete_user_groups(gid, members)
     members.each {|m| m[:groups].delete(gid) if m = ref_by_id(m, :user) } if members
+  end
+
+  def delete_references(id)
+    @things_by_id.each { |k, v|
+      REFERENCES.each { |a| v.delete(a) if v[a] && v[a].delete(id) && v[a].empty? }
+    }
   end
 
   public
@@ -208,7 +219,7 @@ class StubScim
     if new_thing[:members] || thing[:members]
       old_members = thing[:members] || Set.new
       new_members = new_thing[:members] || Set.new
-      remove_user_groups(id, old_members - new_members)
+      delete_user_groups(id, old_members - new_members)
       add_user_groups(id, new_members - old_members)
     end
     READ_ONLY_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
@@ -225,18 +236,23 @@ class StubScim
     add_user_groups(gid, Set[member])
   end
 
+  def is_member(gid, member, attr = :members)
+    (g = ref_by_id(gid, :group)) && (a = g[attr]) && a.include?(member)
+  end
+
   def set_hidden_attr(id, attr, value)
     raise NotFound unless thing = ref_by_id(id)
     raise ArgumentError unless HIDDEN_ATTRS.include?(attr)
     thing[attr] = value
   end
 
-  def remove(id, rtype = nil)
+  def delete(id, rtype = nil)
     return unless thing = ref_by_id(id, rtype)
     rtype = thing[:rtype]
-    remove_user_groups(id, thing[:members])
+    delete_user_groups(id, thing[:members])
     @things_by_id.delete(id)
     thing = @things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase)
+    delete_references(id)
     remove_attrs(output(thing))
   end
 
@@ -250,10 +266,12 @@ class StubScim
     output(thing, attrs)
   end
 
-  def find(rtype, start = 0, count = nil, filter_string = nil, attrs = nil)
-    filter, total = ScimFilter.new(filter_string), 0
+  def find(rtype, opts = {})
+    filter, total, start = ScimFilter.new(opts[:filter]), 0, (opts[:start] || 0)
+    count, attrs, acl, acl_id = opts[:count], opts[:attrs], opts[:acl], opts[:acl_id]
     objs = @things_by_id.each_with_object([]) { |(k, v), o|
       next unless rtype == v[:rtype] && filter.match?(v)
+      next if acl && acl_id && !is_member(v[:id], acl_id, acl)
       o << output(v, attrs) if total >= start && (count.nil? || o.length < count)
       total += 1
     }

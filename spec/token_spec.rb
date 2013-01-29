@@ -26,14 +26,19 @@ describe TokenCli do
     setup_target(authorities: "clients.read,scim.read,scim.write,uaa.resource")
     Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
     Config.yaml.should include("access_token")
-    @test_pwd = "TesTpwd$%^"
-    @test_user = "tEst_UseR+-#{Time.now.to_i}"
+    @test_pwd = "@~`!$@%#%^$^&*)(|}{[]\":';?><,./"
+    @test_user = "test_user_#{Time.now.to_i}"
     Cli.run("user add #{@test_user} -p #{@test_pwd} " +
         "--emails sam@example.com,joNES@sample.com --given_name SamueL " +
         "--phones 801-555-1212 --family_name jonES").should be
   end
 
-  after :all do cleanup_target end
+  after :all do
+    Cli.run "context #{@test_client}"
+    Cli.run("user delete #{@test_user}").should be
+    Cli.run("user get #{@test_user}").should be_nil
+    cleanup_target
+  end
 
   it "logs in with implicit grant & posted credentials as a user" do
     Cli.run("token get #{@test_user} #{@test_pwd}").should be

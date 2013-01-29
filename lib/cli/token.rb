@@ -66,7 +66,16 @@ class TokenCli < CommonCli
   topic "Tokens", "token", "login"
 
   def say_success(grant)
-    say "\nSuccessfully fetched token via a #{grant} grant.\nTarget: #{Config.target}\nContext: #{Config.context}\n"
+    say "\nSuccessfully fetched token via #{grant} grant.\nTarget: #{Config.target}\nContext: #{Config.context}, from client #{Config[:client_id]}\n\n"
+  end
+
+  def set_context(token_info)
+    return gripe "attempt to get token failed\n" unless token_info && token_info["access_token"]
+    contents = TokenCoder.decode(token_info["access_token"], verify: false)
+    Config.context = contents["user_name"] || contents["client_id"] || "bad_token"
+    Config.add_opts(user_id: contents["user_id"]) if contents["user_id"]
+    Config.add_opts(client_id: contents["client_id"]) if contents["client_id"]
+    Config.add_opts token_info
   end
 
   def issuer_request(client_id, secret = nil)
@@ -83,7 +92,7 @@ class TokenCli < CommonCli
       "Gets a token by posting user credentials with an implicit grant request",
       :client, :scope do |*args|
     client_name = opts[:client] || "vmc"
-    token = issuer_request(client_name, "") { |ti|
+    reply = issuer_request(client_name, "") { |ti|
       prompts = ti.prompts
       creds = {}
       prompts.each do |k, v|
@@ -99,41 +108,31 @@ class TokenCli < CommonCli
       end
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
-    return gripe "attempt to get token failed\n" unless token && token["access_token"]
-    tokinfo = TokenCoder.decode(token["access_token"], verify: false)
-    Config.context = tokinfo["user_name"]
-    Config.add_opts(user_id: tokinfo["user_id"])
-    Config.add_opts token
-    say_success "implicit (with posted credentials)"
+    say_success "implicit (with posted credentials)" if set_context(reply)
   end
 
   define_option :secret, "--secret <secret>", "-s", "client secret"
   desc "token client get [name]",
       "Gets a token with client credentials grant", :secret, :scope do |id|
-    id = clientname(id)
-    return unless info = issuer_request(id, clientsecret) { |ti|
+    reply = issuer_request(clientname(id), clientsecret) { |ti|
       ti.client_credentials_grant(opts[:scope]).info
     }
-    Config.context = id
-    Config.add_opts info
-    say_success "client credentials"
+    say_success "client credentials" if set_context(reply)
   end
 
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       :secret, :password, :scope do |client, user|
-    return unless info = issuer_request(clientname(client), clientsecret) { |ti|
+    reply = issuer_request(clientname(client), clientsecret) { |ti|
         ti.owner_password_grant(user = username(user), userpwd, opts[:scope]).info
     }
-    Config.context = user
-    Config.add_opts info
-    say_success "owner password"
+    say_success "owner password" if set_context(reply)
   end
 
   desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", :client, :secret, :scope do |rtok|
     rtok ||= Config.value(:refresh_token)
-    Config.add_opts issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
-    say_success "refresh"
+    reply = issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
+    say_success "refresh" if set_context(reply)
   end
 
   VMC_TOKEN_FILE = File.join ENV["HOME"], ".vmc_token"
@@ -156,9 +155,7 @@ class TokenCli < CommonCli
       sleep 5
       print "."
     end
-    Config.context = TokenCoder.decode(catcher.info[:access_token], verify: false)["user_name"]
-    Config.add_opts catcher.info
-    say_success secret ? "authorization code" : "implicit"
+    say_success(secret ? "authorization code" : "implicit") if set_context(catcher.info)
     return unless opts[:vmc]
     begin
       vmc_target = File.open(VMC_TARGET_FILE, 'r') { |f| f.read.strip }

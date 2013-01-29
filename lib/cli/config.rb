@@ -120,6 +120,8 @@ class Config
     @config[@target][:contexts][@context][attr]
   end
 
+  def self.[](attr) value(attr) end
+
   def self.delete_attr(attr)
     raise ArgumentError, "target and context not set" unless @target && @context
     @config[@target][:contexts][@context].delete(attr)

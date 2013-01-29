@@ -80,6 +80,22 @@ class CommonCli < Topic
     info
   end
 
+  def scim_common_list(type, filter)
+    pp scim_request { |sr|
+      query = { attributes: opts[:attrs], filter: filter }
+      opts[:start] || opts[:count] ?
+        sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count])):
+        sr.all_pages(type, query)
+    }
+  end
+
+  def scim_get_object(scim, type, name, attrs = nil)
+    query = { attributes: attrs, filter: "#{scim.name_attr(type)} eq \"#{name}\""}
+    info = scim.all_pages(type, query)
+    raise BadResponse unless info.is_a?(Array) && info.length < 2
+    raise NotFound if info.length == 0
+    info[0]
+  end
 end
 
 class MiscCli < CommonCli
@@ -141,8 +157,8 @@ class MiscCli < CommonCli
       update_target_info(info) if info[:prompts]
     end
     return say "no target set" unless Config.target
-    return say "target set to #{Config.target}" unless Config.context
-    say "target set to #{Config.target}, with context #{Config.context}"
+    return say "\nTarget: #{Config.target}\n\n" unless Config.context
+    say "\nTarget: #{Config.target}\nContext: #{Config.context}, from client #{Config[:client_id]}\n\n"
   end
 
   desc "targets", "Display all targets" do

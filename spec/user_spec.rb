@@ -28,12 +28,15 @@ describe UserCli do
     Config.yaml.should include("access_token")
     @test_pwd = "TesTpwd$%^"
     @test_user = "tEst_UseR_#{Time.now.to_i}"
-    Cli.run("user add #{@test_user} -p #{@test_pwd} " + 
+    Cli.run("user add #{@test_user} -p #{@test_pwd} " +
         "--emails sam@example.com,joNES@sample.com --given_name SamueL " +
         "--phones 801-555-1212 --family_name jonES").should be
   end
 
-  after :all do cleanup_target end
+  after :all do
+    Cli.run("user delete #{@test_user}")
+    cleanup_target
+  end
 
   it "creates a user" do
     Cli.output.string.should include "success"

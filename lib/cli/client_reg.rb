@@ -47,15 +47,15 @@ class ClientCli < CommonCli
     end
   end
 
-  desc "clients", "List client registrations" do
-    pp scim_request { |cr| cr.all_pages(:client) }
+  desc "clients [filter]", "List client registrations", :attrs, :start, :count do |filter|
+    scim_common_list(:client, filter)
   end
 
-  desc "client get [name]", "Get specific client registration" do |name|
-    pp scim_request { |cr| cr.get(:client, cr.id(:client, clientname(name))) }
+  desc "client get [name]", "Get specific client registration", :attrs do |name|
+    pp scim_request { |sr| scim_get_object(sr, :client, clientname(name), opts[:attrs]) }
   end
 
-  define_option :clone, "--clone <other_client>", "get default client settings from existing client"
+  define_option :clone, "--clone <other>", "get default settings from other"
   define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
 
   desc "client add [name]", "Add client registration",
@@ -63,7 +63,7 @@ class ClientCli < CommonCli
     pp scim_request { |cr|
       opts[:client_id] = clientname(name)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
-      defaults = opts[:clone] ? Util.hash_keys!(cr.get(opts[:clone]), :sym) : {}
+      defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
       cr.add(:client, client_info(defaults))
     }

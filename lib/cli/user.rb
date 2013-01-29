@@ -39,23 +39,18 @@ class UserCli < CommonCli
   define_option :start, "--start <number>", "start of output page"
   define_option :count, "--count <number>", "max number per page"
   desc "users [filter]", "List user accounts", :attrs, :start, :count do |filter|
-    pp scim_request { |ua|
-      query = { attributes: opts[:attrs], filter: filter }
-      opts[:start] || opts[:count] ?
-        ua.query(:user, query.merge!(startIndex: opts[:start], count: opts[:count])):
-        ua.all_pages(:user, query)
-    }
+    scim_common_list(:user, filter)
   end
 
-  desc "user get [name]", "Get specific user account" do |name|
-    pp scim_request { |ua| ua.get(:user, ua.id(:user, username(name))) }
+  desc "user get [name]", "Get specific user account", :attrs do |name|
+    pp scim_request { |sr| scim_get_object(sr, :user, username(name), opts[:attrs]) }
   end
 
   desc "user add [name]", "Add a user account", *USER_INFO_OPTS, :password do |name|
     info = {userName: username(name), password: verified_pwd("Password", opts[:password])}
-    pp scim_request { |ua| 
+    pp scim_request { |ua|
       ua.add(:user, user_opts(info))
-      "user account successfully added" 
+      "user account successfully added"
     }
   end
 
@@ -97,6 +92,7 @@ class UserCli < CommonCli
   define_option :old_password, "-o", "--old_password <password>", "current password"
   desc "password change", "Change password for authenticated user in current context", :old_password, :password do
     pp scim_request { |ua|
+      raise "no user_id in current context" unless Config.value(:user_id)
       oldpwd = opts[:old_password] || ask_pwd("Current password")
       ua.change_password(Config.value(:user_id), verified_pwd("New password", opts[:password]), oldpwd)
       "password successfully changed"

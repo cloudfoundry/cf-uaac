@@ -38,7 +38,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "simplecov"
   s.add_development_dependency "simplecov-rcov"
   s.add_development_dependency "ci_reporter"
-  s.add_runtime_dependency "cf-uaa-lib", ">= 1.3.4", "<= 1.3.4"
+  s.add_runtime_dependency "cf-uaa-lib", ">= 1.3.6", "<= 1.3.6"
   s.add_runtime_dependency "highline"
   s.add_runtime_dependency "eventmachine"
   s.add_runtime_dependency "launchy"

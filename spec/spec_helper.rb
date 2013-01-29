@@ -42,8 +42,7 @@ module SpecHelper
   # restriction that the given block cannot include rspec matchers.
   def frequest(on_fiber, &blk)
     return capture_exception(&blk) unless on_fiber
-    result = nil
-    cthred = Thread.current
+    result, cthred = nil, Thread.current
     EM.schedule { Fiber.new { result = capture_exception(&blk); cthred.run }.resume }
     Thread.stop
     result
@@ -51,8 +50,9 @@ module SpecHelper
 
   def setup_target(opts = {})
     opts = { authorities: "clients.read,scim.read,scim.write,uaa.resource",
-      grant_types: "client_credentials,password",
-      scope: "openid,password.write"}.update(opts)
+      grant_types: "client_credentials,password,refresh_token",
+      scope: "openid,password.write,scim.me,scim.read",
+      autoapprove: "openid,password.write,scim.me,scim.read"}.update(opts)
     @admin_client = ENV["UAA_CLIENT_ID"] || "admin"
     @admin_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
     if ENV["UAA_CLIENT_TARGET"]
@@ -68,12 +68,16 @@ module SpecHelper
     @test_secret = "+=tEsTsEcRet~!@"
     Cli.run("client add #{test_client} -s #{@test_secret} " +
         "--authorities #{opts[:authorities]} --scope #{opts[:scope]} " +
-        "--authorized_grant_types #{opts[:grant_types]}").should be
+        "--authorized_grant_types #{opts[:grant_types]} " +
+        "--autoapprove #{opts[:autoapprove]}").should be
     opts.each { |k, a| Util.arglist(a).each {|v| Cli.output.string.should include(v) }}
     @test_client = test_client
   end
 
   def cleanup_target
+    #Cli.run "context #{@test_client}"
+    #Cli.run("groups"); puts Cli.output.string
+    #Cli.run("users"); puts Cli.output.string
     Cli.run("context #{@admin_client}")
     if @test_client && !@test_client.empty?
       Cli.run("client delete #{@test_client}").should be
