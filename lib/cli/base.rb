@@ -240,7 +240,7 @@ class BaseCli
     @input ||= $stdin
     @output ||= $stdout
     @output.string = "" if @output.respond_to?(:string)
-    args = args.split if args.respond_to?(:split)
+    args = Shellwords.split(args) if args.respond_to?(:split)
     @option_defs, @parser, orig = {}, OptionParser.new, args
     opts = @topics.each_with_object({}) do |tpc, o|
       tpc.option_defs.each do |k, optdef|

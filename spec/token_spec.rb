@@ -26,7 +26,7 @@ describe TokenCli do
     setup_target(authorities: "clients.read,scim.read,scim.write,uaa.resource")
     Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
     Config.yaml.should include("access_token")
-    @test_pwd = "@~`!$@%#%^$^&*)(|}{[]\":';?><,./"
+    @test_pwd = Shellwords.escape("@~`!$@%#%^$^&*)(|}{[]\":';?><,./")
     @test_user = "test_user_#{Time.now.to_i}"
     Cli.run("user add #{@test_user} -p #{@test_pwd} " +
         "--emails sam@example.com,joNES@sample.com --given_name SamueL " +

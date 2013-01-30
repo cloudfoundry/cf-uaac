@@ -27,7 +27,7 @@ class TokenCatcher < Stub::Base
         token_target: Config.target_value(:token_target))
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
-    server.info.update(Util.hash_keys!(tkn.info, :sym))
+    server.info.update(token_info: tkn.info)
     reply.text "you are now logged in and can close this window"
   rescue TargetError => e
     reply.text "#{e.message}:\r\n#{Util.json_pretty(e.info)}\r\n#{e.backtrace}"
@@ -151,11 +151,11 @@ class TokenCli < CommonCli
     say "launching browser with #{uri}" if trace?
     Launchy.open(uri, debug: true, dry_run: false)
     print "waiting for token "
-    while catcher.info[:uri] || !catcher.info[:access_token]
+    while catcher.info[:uri] || !catcher.info[:token_info]
       sleep 5
       print "."
     end
-    say_success(secret ? "authorization code" : "implicit") if set_context(catcher.info)
+    say_success(secret ? "authorization code" : "implicit") if set_context(catcher.info[:token_info])
     return unless opts[:vmc]
     begin
       vmc_target = File.open(VMC_TARGET_FILE, 'r') { |f| f.read.strip }

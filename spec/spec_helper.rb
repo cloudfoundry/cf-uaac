@@ -65,7 +65,7 @@ module SpecHelper
     Cli.run("token client get #{@admin_client} -s #{@admin_secret}")
     Config.yaml.should include("access_token")
     test_client = "test_client_#{Time.now.to_i}"
-    @test_secret = "+=tEsTsEcRet~!@"
+    @test_secret = Shellwords.escape("+=tEsTsEcRet~!@--")
     Cli.run("client add #{test_client} -s #{@test_secret} " +
         "--authorities #{opts[:authorities]} --scope #{opts[:scope]} " +
         "--authorized_grant_types #{opts[:grant_types]} " +
