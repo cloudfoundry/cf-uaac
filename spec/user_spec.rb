@@ -48,8 +48,10 @@ describe UserCli do
 
   it "changes a user's password" do
     Cli.run("token get #{@test_user} #{@test_pwd}").should be
-    Cli.run("password change -p newpwd --old_password #{@test_pwd}").should be
+    Cli.run("password change --password newpwd --old_password #{@test_pwd}").should be
     Cli.run("token get #{@test_user} newpwd").should be
+    Cli.run("password change -p #{@test_pwd} -o newpwd").should be
+    Cli.run("token get #{@test_user} #{@test_pwd}").should be
     Cli.output.string.should include "Successfully fetched token"
   end
 

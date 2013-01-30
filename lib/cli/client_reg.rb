@@ -94,7 +94,7 @@ class ClientCli < CommonCli
     }
   end
 
-  define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
+  define_option :old_secret, "--old_secret <secret>", "current secret"
   desc "secret change", "Change secret for authenticated client in current context", :old_secret, :secret do
     return gripe "context not set" unless client_id = Config.context.to_s
     scim_request { |cr|

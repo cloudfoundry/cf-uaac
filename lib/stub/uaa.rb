@@ -366,15 +366,16 @@ class StubUAAConn < Stub::Base
 
   route :put, %r{^/oauth/clients/([^/]+)/secret$}, "content-type" => %r{application/json} do
     info = Util.json_parse(request.body, :down)
+    return not_found(match[1]) unless id = server.scim.id(match[1], :client)
+    return bad_request("no new secret given") unless info['secret']
     if oldsecret = info['oldsecret']
       return unless valid_token("clients.secret")
-      return not_found(match[1]) unless client = server.scim.get(match[1], :client, :client_secret)
+      return not_found(match[1]) unless client = server.scim.get(id, :client, :client_secret)
       return bad_request("old secret does not match") unless oldsecret == client[:client_secret]
     else
       return unless valid_token("uaa.admin")
     end
-    return bad_request("no new secret given") unless info['secret']
-    server.scim.set_hidden_attr(match[1], :client_secret, info['secret'])
+    server.scim.set_hidden_attr(id, :client_secret, info['secret'])
     reply.json(status: "ok", message: "secret updated")
   end
 

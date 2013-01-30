@@ -23,7 +23,7 @@ describe ClientCli do
   before :all do
     #Util.default_logger(:trace)
     Cli.configure("", nil, StringIO.new, true)
-    setup_target(authorities: "scim.read", grant_types: "client_credentials")
+    setup_target(authorities: "scim.read,clients.secret", grant_types: "client_credentials")
     @test_user, @test_pwd = "sam_#{Time.now.to_i}", "correcthorsebatterystaple"
   end
 
@@ -52,6 +52,15 @@ describe ClientCli do
     it "logs in as test client" do
       Cli.run("context").should be # login was in before :all block
       Cli.output.string.should include "access_token", @test_client
+    end
+
+    it "changes it's client secret" do
+      Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+      Cli.run("token decode").should be
+      Cli.run("secret change --old_secret #{@test_secret} --secret newclientsecret").should be
+      Cli.run("token client get #{@test_client} -s newclientsecret").should be
+      Cli.run("secret change --old_secret newclientsecret -s #{@test_secret}").should be
+      Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
     end
 
     it "fails to create a user account as test client" do
