@@ -54,7 +54,6 @@ describe GroupCli do
     Cli.output.string.should include @test_group
     Cli.run("group get #{@test_group.upcase}").should be
     Cli.output.string.should include @test_group
-    pending "real uaa can't add members to scim.read group yet" unless @stub_uaa
     Cli.run("member add scim.read #{@test_user}w").should be
   end
 
@@ -109,7 +108,6 @@ describe GroupCli do
 
   it "adds one writer to the group" do
     Cli.run("group writer add #{@test_group} #{@test_user}w").should be
-    Cli.run("group reader add #{@test_group} #{@test_user}w").should be
     Cli.output.string.should include "success"
   end
 

@@ -83,9 +83,12 @@ class CommonCli < Topic
   def scim_common_list(type, filter)
     pp scim_request { |sr|
       query = { attributes: opts[:attrs], filter: filter }
-      opts[:start] || opts[:count] ?
+      info = opts[:start] || opts[:count] ?
         sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count])):
         sr.all_pages(type, query)
+      nattr = sr.name_attr(type).downcase
+      info.is_a?(Array) && info.length > 0 && info[0][nattr] ?
+          info.each_with_object({}) { |v, h| h[v.delete(nattr)] = v } : info
     }
   end
 
@@ -94,7 +97,9 @@ class CommonCli < Topic
     info = scim.all_pages(type, query)
     raise BadResponse unless info.is_a?(Array) && info.length < 2
     raise NotFound if info.length == 0
-    info[0]
+    info = info[0]
+    # when getting whole object, handle case of UAA < 1.3 which did not return meta attr from query
+    attrs || !info["id"] || info["meta"]? info : scim.get(type, info["id"])
   end
 end
 

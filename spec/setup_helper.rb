@@ -18,7 +18,7 @@ require 'cli'
 
 client = ENV["UAA_CLIENT_ID"] || "admin"
 secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
-abort("UAA_CLIENT_TARGET is not set") unless target = ENV["UAA_CLIENT_TARGET"]
+target = ENV["UAA_CLIENT_TARGET"] || "http://localhost:8080/uaa"
 
 [
   "target #{target}",
