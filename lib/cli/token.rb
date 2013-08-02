@@ -187,7 +187,7 @@ class TokenCli < CommonCli
     return say "no token to decode" unless token && ttype
     handle_request do
       if opts[:client] && opts[:secret]
-        pp Misc.decode_token(Config.target, opts[:client], opts[:secret], token, ttype)
+        pp @cli_class.uaa_info_client.decode_token(opts[:client], opts[:secret], token, ttype)
       else
         seckey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) !~ /rsa$/i)
         pubkey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) =~ /rsa$/i)
