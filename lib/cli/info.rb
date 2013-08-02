@@ -23,20 +23,24 @@ class InfoCli < CommonCli
   def misc_request(&blk) Config.target ? handle_request(&blk) : gripe("target not set") end
 
   desc "info", "get information about current target" do
-    pp misc_request { update_target_info(Misc.server(Config.target)) }
+    pp misc_request { update_target_info(@cli_class.uaa_info_client.server) }
   end
 
   desc "me", "get authenticated user information" do
-    pp misc_request { Misc.whoami Config.target, auth_header }
+    pp misc_request { @cli_class.uaa_info_client.whoami(auth_header) }
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
-    pp misc_request { update_target_info(Misc.server(Config.target))['prompts'] }
+    pp misc_request { update_target_info(@cli_class.uaa_info_client.server)['prompts'] }
   end
 
   desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
-    info = misc_request { Misc.validation_key(Config.target, 
-        (clientname if opts.key?(:client)), (clientsecret if opts.key?(:client))) }
+    info = misc_request {
+      @cli_class.uaa_info_client.validation_key(
+          (clientname if opts.key?(:client)),
+          (clientsecret if opts.key?(:client))
+      )
+    }
     if info && info['value']
       Config.target_opts(signing_alg: info['alg'], signing_key: info['value'])
     end
@@ -44,11 +48,11 @@ class InfoCli < CommonCli
   end
 
   desc "stats", "Show UAA's current usage statistics", :client, :secret do
-    pp misc_request { Misc.varz(Config.target, clientname, clientsecret) }
+    pp misc_request { @cli_class.uaa_info_client.varz(clientname, clientsecret) }
   end
 
   desc "password strength [password]", "calculate strength score of a password" do |pwd|
-    pp misc_request { Misc.password_strength(Config.target, userpwd(pwd)) }
+    pp misc_request { @cli_class.uaa_info_client.password_strength(userpwd(pwd)) }
   end
 
 end

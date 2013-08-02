@@ -45,7 +45,14 @@ class Cli < BaseCli
     [:trace, :debug].each do |k|
       opts[k] = true if !opts.key?(k) && Config.target && Config.context && Config.value(k)
     end
-    Misc.logger = Util.default_logger(opts[:trace]? :trace: opts[:debug]? :debug: :warn, @output)
+
+    @uaa_logger = Util.default_logger(opts[:trace]? :trace: opts[:debug]? :debug: :warn, @output)
+  end
+
+  def self.uaa_info_client(url = Config.target)
+    client = Info.new(url)
+    client.logger = @uaa_logger
+    client
   end
 
 end
