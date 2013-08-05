@@ -74,7 +74,7 @@ class CommonCli < Topic
 
   def update_target_info(info = nil)
     return if !info && Config.target_value(:prompts)
-    info ||= Misc.server(Config.target)
+    info ||= @cli_class.uaa_info_client.server
     Config.target_opts(prompts: info['prompts'])
     Config.target_opts(token_endpoint: info['token_endpoint']) if info['token_endpoint']
     info
@@ -136,7 +136,7 @@ class MiscCli < CommonCli
   end
 
   def bad_uaa_url(url, info)
-    info.replace(Misc.server(url.to_s))
+    info.replace(@cli_class.uaa_info_client(url.to_s).server)
     nil
   rescue Exception => e
     "failed to access #{url}: #{e.message}"
