@@ -22,7 +22,8 @@ describe ClientCli do
 
   before :all do
     #Util.default_logger(:trace)
-    Cli.configure("", nil, StringIO.new, true)
+    @output = StringIO.new
+    Cli.configure("", nil, @output, true)
     setup_target(authorities: "scim.read,clients.secret", grant_types: "client_credentials")
     @test_user, @test_pwd = "sam_#{Time.now.to_i}", "correcthorsebatterystaple"
   end
@@ -51,7 +52,15 @@ describe ClientCli do
 
     it "logs in as test client" do
       Cli.run("context").should be # login was in before :all block
-      Cli.output.string.should include "access_token", @test_client
+      Cli.output.string.should include @test_client
+      Cli.output.string.should match /access_token: \S+?\s+token_type/m
+    end
+
+    it "does not wrap the output of the access token in the terminal" do
+      @output.stub(:tty?) { true }
+      HighLine::SystemExtensions.stub(:terminal_size) { [80] }
+      Cli.run("context").should be
+      Cli.output.string.should match /access_token: \S+?\s+token_type/m
     end
 
     it "changes it's client secret" do

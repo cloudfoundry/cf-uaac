@@ -187,7 +187,7 @@ class MiscCli < CommonCli
         splat = sv[:current] && v[:current]? '*' : ' '
         sv.delete(:current)
         pp "[#{si}]#{splat}[#{sk}]", 2
-        pp sv, 4
+        pp sv, 4, 0
       end
     end
     say ""
