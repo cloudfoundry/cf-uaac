@@ -222,7 +222,9 @@ class StubUAAConn < Stub::Base
         return redir_err_f(cburi, state, "invalid_scope")
       end
       # TODO: how to stub any remaining scopes that are not auto-approve?
-      return redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query["state"]))
+      token_reply_info = token_reply_info(client, granted_scope, user, query["state"])
+      token_reply_info.delete(:scope) if query["scope"]
+      return redir_with_fragment(cburi, token_reply_info)
     end
     return redir_err_q(cburi, state, "invalid_request") unless request.method == "get"
     return redir_err_q(cburi, state, "unsupported_response_type") unless query["response_type"] == 'code'

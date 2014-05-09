@@ -43,6 +43,17 @@ describe TokenCli do
   it "logs in with implicit grant & posted credentials as a user" do
     Cli.run("token get #{@test_user} #{@test_pwd}").should be
     Cli.output.string.should include("Successfully fetched token")
+    Cli.run("context")
+    Cli.output.string.should match /scope: password\.write openid$/
+  end
+
+  it "can request a specific scope" do
+    Cli.run("token delete")
+    Cli.output.truncate 0
+    Cli.run("token get --scope password.write #{@test_user} #{@test_pwd}").should be
+    Cli.output.string.should include("Successfully fetched token")
+    Cli.run("context")
+    Cli.output.string.should match /scope: password\.write$/
   end
 
   it "decodes the token" do
@@ -55,6 +66,7 @@ describe TokenCli do
   end
 
   it "gets authenticated user information" do
+    Cli.run("token get #{@test_user} #{@test_pwd}").should be
     Cli.run("me").should be
     Cli.output.string.should include(@test_user)
   end
