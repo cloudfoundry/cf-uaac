@@ -96,7 +96,7 @@ class TokenCli < CommonCli
   desc "token get [credentials...]",
       "Gets a token by posting user credentials with an implicit grant request",
       :client, :scope do |*args|
-    client_name = opts[:client] || "vmc"
+    client_name = opts[:client] || "cf"
     reply = issuer_request(client_name, "") { |ti|
       prompts = ti.prompts
       creds = {}
@@ -140,8 +140,8 @@ class TokenCli < CommonCli
     say_success "refresh" if set_context(reply)
   end
 
-  VMC_TOKEN_FILE = File.join ENV["HOME"], ".vmc_token"
-  VMC_TARGET_FILE = File.join ENV["HOME"], ".vmc_target"
+  CF_TOKEN_FILE = File.join ENV["HOME"], ".cf_token"
+  CF_TARGET_FILE = File.join ENV["HOME"], ".cf_target"
 
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
@@ -161,26 +161,26 @@ class TokenCli < CommonCli
       print "."
     end
     say_success(secret ? "authorization code" : "implicit") if set_context(catcher.info[:token_info])
-    return unless opts[:vmc]
+    return unless opts[:cf]
     begin
-      vmc_target = File.open(VMC_TARGET_FILE, 'r') { |f| f.read.strip }
-      tok_json = File.open(VMC_TOKEN_FILE, 'r') { |f| f.read } if File.exists?(VMC_TOKEN_FILE)
-      vmc_tokens = Util.json_parse(tok_json, :none) || {}
-      vmc_tokens[vmc_target] = auth_header
-      File.open(VMC_TOKEN_FILE, 'w') { |f| f.write(vmc_tokens.to_json) }
+      cf_target = File.open(CF_TARGET_FILE, 'r') { |f| f.read.strip }
+      tok_json = File.open(CF_TOKEN_FILE, 'r') { |f| f.read } if File.exists?(CF_TOKEN_FILE)
+      cf_tokens = Util.json_parse(tok_json, :none) || {}
+      cf_tokens[cf_target] = auth_header
+      File.open(CF_TOKEN_FILE, 'w') { |f| f.write(cf_tokens.to_json) }
     rescue Exception => e
-      gripe "\nUnable to save token to vmc token file"
+      gripe "\nUnable to save token to cf token file"
       complain e
     end
   end
 
   define_option :port, "--port <number>", "pin internal server to specific port"
-  define_option :vmc, "--[no-]vmc", "save token in the ~/.vmc_tokens file"
+  define_option :cf, "--[no-]cf", "save token in the ~/.cf_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      :client, :secret, :scope, :vmc, :port do use_browser(clientname, clientsecret) end
+      :client, :secret, :scope, :cf, :port do use_browser(clientname, clientsecret) end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
-      :client, :scope, :vmc, :port do use_browser opts[:client] || "vmc" end
+      :client, :scope, :cf, :port do use_browser opts[:client] || "cf" end
 
   define_option :key, "--key <key>", "Token validation key"
   desc "token decode [token] [tokentype]", "Show token contents as parsed locally or by the UAA. " +

@@ -495,7 +495,7 @@ class StubUAA < Stub::Server
     @scim.add(:client, 'client_id' => client, 'client_secret' => secret,
         'authorized_grant_types' => ["client_credentials"], 'authorities' => gids,
         'access_token_validity' => 60 * 60 * 24 * 7)
-    @scim.add(:client, 'client_id' => "vmc", 'authorized_grant_types' => ["implicit"],
+    @scim.add(:client, 'client_id' => "cf", 'authorized_grant_types' => ["implicit"],
         'scope' => [@scim.id("openid", :group), @scim.id("password.write", :group)],
         'access_token_validity' => 5 * 60 )
     info = { commit_id: "not implemented",
