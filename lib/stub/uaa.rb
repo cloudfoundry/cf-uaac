@@ -68,6 +68,17 @@ class StubUAAConn < Stub::Base
     reply.body = File.read File.expand_path(File.join(__FILE__, '..', '..', 'lib', 'cli', 'favicon.ico'))
   end
 
+  route :put, '/another-fake-endpoint' do
+    return unless valid_token("clients.read")
+    parsed = JSON.parse(request.body)
+    reply_in_kind(202, parsed)
+  end
+
+  route :get, '/my-fake-endpoint' do
+    return unless valid_token("clients.read")
+    reply_in_kind(200, { body: "some fake response text"})
+  end
+
   route :get, '/' do reply_in_kind "welcome to stub UAA, version #{VERSION}" end
   route :get, '/varz' do reply_in_kind(mem: 0, type: 'UAA', app: { version: VERSION } ) end
   route :get, '/token_key' do reply_in_kind(alg: "none", value: "none") end

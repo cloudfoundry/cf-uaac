@@ -17,6 +17,7 @@ require 'logger'
 require 'pp'
 require 'erb'
 require 'multi_json'
+require 'rack'
 
 module Stub
 
@@ -88,7 +89,8 @@ class Reply
   attr_accessor :status, :headers, :body
   def initialize(status = 200) @status, @headers, @cookies, @body = status, {}, [], "" end
   def to_s
-    reply = "HTTP/1.1 #{@status} OK\r\n"
+    message = Rack::Utils::HTTP_STATUS_CODES[@status]
+    reply = "HTTP/1.1 #{@status} #{message.upcase if message}\r\n"
     headers["server"], headers["date"] = "stub server", DateTime.now.httpdate
     headers["content-length"] = body.bytesize
     headers.each { |k, v| reply << "#{k}: #{v}\r\n" }
