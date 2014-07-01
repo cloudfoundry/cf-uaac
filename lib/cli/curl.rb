@@ -12,30 +12,65 @@ module CF::UAA
 
     define_option :request, "-X", "--request <method>", "request method type, defaults to GET"
     define_option :data, "-d", "--data <data>", "data included in request body"
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data do |path|
+    define_option :header, "-H", "--header <header>", "header to be included in the request"
+
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header do |path|
       return say_command_help(["curl"]) unless path
 
-      url = "#{Config.target}#{path}"
+      uri = parse_uri(path)
       opts[:request] ||= "GET"
+      print_request(opts[:request], uri, opts[:data], opts[:header])
+      response = make_request(uri, opts[:request], opts[:data], opts[:header])
+      print_response(response)
+    end
 
-      say "#{opts[:request]} #{url}"
-      say "REQUEST BODY: \"#{opts[:data]}\"" if opts[:data]
+    def parse_uri(path)
+      uri = URI.parse(path)
+      unless uri.host
+        uri = URI.parse("#{Config.target}#{path}")
+      end
+      uri
+    end
+
+    def print_request(request, uri, data, header)
+      say "#{request} #{uri.to_s}"
+      say "REQUEST BODY: \"#{data}\"" if data
+      if header
+        say "REQUEST HEADERS:"
+        Array(header).each do |h|
+          say "  #{h}"
+        end
+      end
       say ""
+    end
 
-      uri = URI.parse(url)
+    def make_request(uri, request, data, header)
       http = Net::HTTP.new(uri.host, uri.port)
-      request_class = Net::HTTP.const_get("#{opts[:request][0]}#{opts[:request][1..-1].downcase}")
+      request_class = Net::HTTP.const_get("#{request[0]}#{request[1..-1].downcase}")
       req = request_class.new(uri.request_uri)
       req["Authorization"] = "Bearer #{Config.value(:access_token)}"
-      req["Accept"] = "application/json"
-      response = http.request(req, opts[:data])
+      Array(header).each do |h|
+        key, value = h.split(":")
+        req[key] = value
+      end
+      http.request(req, data)
+    end
 
+    def print_response(response)
       say "#{response.code} #{response.message}"
+      say "RESPONSE HEADERS:"
+      response.each_capitalized do |key, value|
+        say "  #{key}: #{value}"
+      end
 
-      parsed = JSON.parse(response.body)
-      formatted = JSON.pretty_generate(parsed)
-
-      say "RESPONSE BODY:\n#{formatted}"
+      say "RESPONSE BODY:"
+      if response['Content-Type'].include?('application/json')
+        parsed = JSON.parse(response.body)
+        formatted = JSON.pretty_generate(parsed)
+        say formatted
+      else
+        say response.body
+      end
     end
   end
 end

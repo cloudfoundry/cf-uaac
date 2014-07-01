@@ -71,12 +71,12 @@ class StubUAAConn < Stub::Base
   route :put, '/another-fake-endpoint' do
     return unless valid_token("clients.read")
     parsed = JSON.parse(request.body)
-    reply_in_kind(202, parsed)
+    reply_in_kind(202, parsed.merge(:updated => 42))
   end
 
   route :get, '/my-fake-endpoint' do
     return unless valid_token("clients.read")
-    reply_in_kind(200, { body: "some fake response text"})
+    reply_in_kind(200, "some fake response text")
   end
 
   route :get, '/' do reply_in_kind "welcome to stub UAA, version #{VERSION}" end

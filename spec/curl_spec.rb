@@ -42,19 +42,46 @@ module CF::UAA
 
       Cli.output.string.should include "GET #{@target}/my-fake-endpoint"
       Cli.output.string.should_not include "REQUEST BODY"
+      Cli.output.string.should_not include "REQUEST HEADERS"
       Cli.output.string.should include "200 OK"
       Cli.output.string.should include "RESPONSE BODY:"
-      Cli.output.string.should include "\"body\": \"some fake response text\""
+      Cli.output.string.should include "some fake response text"
     end
 
     it "displays the correct response text when we include a body in the request" do
-      Cli.run("curl -X PUT -d '{\"fake\": true}' /another-fake-endpoint")
+      Cli.run("curl -X PUT -d '{\"fake\": true}' -H 'Accept: application/json' /another-fake-endpoint")
 
       Cli.output.string.should include "PUT #{@target}/another-fake-endpoint"
       Cli.output.string.should include "REQUEST BODY: \"{\"fake\": true}\""
+      Cli.output.string.should include "Accept: application/json"
       Cli.output.string.should include "202 ACCEPTED"
       Cli.output.string.should include "RESPONSE BODY:"
       Cli.output.string.should include "\"fake\": true"
+      Cli.output.string.should include "\"updated\": 42"
+    end
+
+    it "uses headers passed from the command line" do
+      Cli.run("curl -H \"X-Something: non-standard header\" -H \"X-Another: something\" /my-fake-endpoint")
+
+      Cli.output.string.should include "GET #{@target}/my-fake-endpoint"
+      Cli.output.string.should include "REQUEST HEADERS:"
+      Cli.output.string.should include "  X-Something: non-standard header"
+      Cli.output.string.should include "  X-Another: something"
+      Cli.output.string.should include "RESPONSE HEADERS:"
+      Cli.output.string.should include "  Content-Type: text/plain"
+    end
+
+    it "hits an external server when a request host is specified in the command" do
+      Cli.run("curl http://example.com/something")
+
+      Cli.output.string.should include "GET http://example.com/something"
+      Cli.output.string.should include "404 Not Found"
+    end
+
+    it "prints non-JSON responses" do
+      Cli.run("curl http://example.com/something")
+
+      Cli.output.string.should_not include "JSON::ParserError"
     end
   end
 end
