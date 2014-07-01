@@ -13,14 +13,15 @@ module CF::UAA
     define_option :request, "-X", "--request <method>", "request method type, defaults to GET"
     define_option :data, "-d", "--data <data>", "data included in request body"
     define_option :header, "-H", "--header <header>", "header to be included in the request"
+    define_option :insecure, "-k", "--insecure", "makes request without verifying SSL certificates"
 
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header do |path|
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure do |path|
       return say_command_help(["curl"]) unless path
 
       uri = parse_uri(path)
       opts[:request] ||= "GET"
       print_request(opts[:request], uri, opts[:data], opts[:header])
-      response = make_request(uri, opts[:request], opts[:data], opts[:header])
+      response = make_request(uri, opts)
       print_response(response)
     end
 
@@ -44,16 +45,22 @@ module CF::UAA
       say ""
     end
 
-    def make_request(uri, request, data, header)
+    def make_request(uri, options)
       http = Net::HTTP.new(uri.host, uri.port)
-      request_class = Net::HTTP.const_get("#{request[0]}#{request[1..-1].downcase}")
+      if uri.scheme == "https"
+        http.use_ssl = true
+        if options[:insecure]
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+      end
+      request_class = Net::HTTP.const_get("#{options[:request][0]}#{options[:request][1..-1].downcase}")
       req = request_class.new(uri.request_uri)
       req["Authorization"] = "Bearer #{Config.value(:access_token)}"
-      Array(header).each do |h|
+      Array(options[:header]).each do |h|
         key, value = h.split(":")
         req[key] = value
       end
-      http.request(req, data)
+      http.request(req, options[:data])
     end
 
     def print_response(response)

@@ -83,5 +83,12 @@ module CF::UAA
 
       Cli.output.string.should_not include "JSON::ParserError"
     end
+
+    it "makes insecure requests with the -k flag" do
+      Cli.run("curl https://example.com/ -k")
+
+      Cli.output.string.should_not include "ECONNRESET"
+      Cli.output.string.should include "200 OK"
+    end
   end
 end
