@@ -244,7 +244,9 @@ class BaseCli
     @option_defs, @parser, orig = {}, OptionParser.new, args
     opts = @topics.each_with_object({}) do |tpc, o|
       tpc.option_defs.each do |k, optdef|
-        @parser.on(*optdef) { |v| o[k] = v }
+        @parser.on(*optdef) do |v|
+          o[k] = (o[k] ? Array(o[k]).push(v) : v )
+        end
         @option_defs[k] = optdef
       end
     end
