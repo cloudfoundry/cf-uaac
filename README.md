@@ -1,5 +1,7 @@
 # CloudFoundry UAA Command Line Client
 
+[![Build Status](https://travis-ci.org/cloudfoundry/cf-uaac.svg?branch=master)](https://travis-ci.org/cloudfoundry/cf-uaac)
+
 ## Build the gem
 
     $ bundle install
