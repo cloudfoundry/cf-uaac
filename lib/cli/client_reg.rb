@@ -19,10 +19,16 @@ class ClientCli < CommonCli
 
   topic "Client Application Registrations", "reg"
 
-  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list",
-      authorities: "list", access_token_validity: "seconds",
-      refresh_token_validity: "seconds", redirect_uri: "list",
-      autoapprove: "list" }
+  CLIENT_SCHEMA = {
+      :scope => "list",
+      :authorized_grant_types => "list",
+      :authorities => "list",
+      :access_token_validity => "seconds",
+      :refresh_token_validity => "seconds",
+      :redirect_uri => "list",
+      :autoapprove => "list",
+      :'signup-success-redirect-url' => "url"
+  }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
   def client_info(defaults)

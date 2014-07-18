@@ -52,7 +52,8 @@ module SpecHelper
     opts = { authorities: "clients.read,scim.read,scim.write,uaa.resource",
       grant_types: "client_credentials,password,refresh_token",
       scope: "openid,password.write,scim.me,scim.read",
-      autoapprove: "openid,password.write,scim.me,scim.read"}.update(opts)
+      autoapprove: "openid,password.write,scim.me,scim.read",
+      signup_success_redirect_url: "home"}.update(opts)
     @admin_client = ENV["UAA_CLIENT_ID"] || "admin"
     @admin_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
     if ENV["UAA_CLIENT_TARGET"]
@@ -67,9 +68,11 @@ module SpecHelper
     test_client = "test_client_#{Time.now.to_i}"
     @test_secret = Shellwords.escape("+=tEsTsEcRet~!@--")
     Cli.run("client add #{test_client} -s #{@test_secret} " +
-        "--authorities #{opts[:authorities]} --scope #{opts[:scope]} " +
+        "--authorities #{opts[:authorities]} " +
+        "--scope #{opts[:scope]} " +
         "--authorized_grant_types #{opts[:grant_types]} " +
-        "--autoapprove #{opts[:autoapprove]}").should be
+        "--autoapprove #{opts[:autoapprove]} " +
+        "--signup-success-redirect-url #{opts[:signup_success_redirect_url]}").should be
     opts.each { |k, a| Util.arglist(a).each {|v| Cli.output.string.should include(v) }}
     @test_client = test_client
   end
