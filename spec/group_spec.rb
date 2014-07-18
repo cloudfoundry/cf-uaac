@@ -118,7 +118,8 @@ describe GroupCli do
   end
 
   it "reads members as a reader" do
-    pending "real uaa can't search for groups by name with scim.me/readers" unless @stub_uaa
+    pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+
     Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}r -p #{@test_pwd}").should be
     Cli.run("group get #{@test_group} -a memBers").should be
     ids = Cli.output.string.scan(/.*value:\s+([^\s]+)/).flatten
@@ -126,13 +127,14 @@ describe GroupCli do
   end
 
   it "can't write members as a reader" do
-    pending "real uaa can't search for groups by name with scim.me/readers" unless @stub_uaa
     Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}r -p #{@test_pwd}").should be
     Cli.run("member add #{@test_group} #{@test_user}z").should_not be
     Cli.output.string.should include "access_denied"
   end
 
   it "adds a member as a writer" do
+    pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+
     Cli.run "context #{@test_client}"
     Cli.run("user add #{@test_user}z -p #{@test_pwd} --email sam@example.com").should be
     @users << "#{@test_user}z"

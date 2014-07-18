@@ -38,6 +38,8 @@ module CF::UAA
     end
 
     it "hits the URL on the UAA target" do
+      pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+
       Cli.run("curl /my-fake-endpoint")
 
       Cli.output.string.should include "GET #{@target}/my-fake-endpoint"
@@ -49,6 +51,8 @@ module CF::UAA
     end
 
     it "displays the correct response text when we include a body in the request" do
+      pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+
       Cli.run("curl -X PUT -d '{\"fake\": true}' -H 'Accept: application/json' /another-fake-endpoint")
 
       Cli.output.string.should include "PUT #{@target}/another-fake-endpoint"
@@ -61,6 +65,8 @@ module CF::UAA
     end
 
     it "uses headers passed from the command line" do
+      pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+
       Cli.run("curl -H \"X-Something: non-standard header\" -H \"X-Another: something\" /my-fake-endpoint")
 
       Cli.output.string.should include "GET #{@target}/my-fake-endpoint"

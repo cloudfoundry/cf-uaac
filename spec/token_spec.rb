@@ -44,7 +44,7 @@ describe TokenCli do
     Cli.run("token get #{@test_user} #{@test_pwd}").should be
     Cli.output.string.should include("Successfully fetched token")
     Cli.run("context")
-    Cli.output.string.should match /scope: password\.write openid$/
+    Cli.output.string.should match /scope:.+password\.write openid.*$/
   end
 
   it "can request a specific scope" do
