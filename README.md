@@ -33,3 +33,10 @@ Run the tests with rake:
 Run the tests and see a fancy coverage report:
 
     $ bundle exec rake cov
+
+Run integration tests (on a server running on localhost:8080/uaa):
+
+    $ export UAA_CLIENT_ID="admin"
+    $ export UAA_CLIENT_SECRET="adminsecret"
+    $ export UAA_CLIENT_TARGET="http://localhost:8080/uaa"
+    $ bundle exec rspec spec/integration_spec.rb
