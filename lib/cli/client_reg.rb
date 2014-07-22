@@ -27,7 +27,7 @@ class ClientCli < CommonCli
       :refresh_token_validity => "seconds",
       :redirect_uri => "list",
       :autoapprove => "list",
-      :'signup-success-redirect-url' => "url"
+      :'signup_redirect_url' => "url"
   }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 

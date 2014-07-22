@@ -60,7 +60,7 @@ class StubScim
       client: [*COMMON_ATTRS, :client_id, :client_secret, :authorities,
         :authorized_grant_types, :scope, :autoapprove,
         :access_token_validity, :refresh_token_validity, :redirect_uri,
-        :'signup-success-redirect-url'].to_set,
+        :'signup_redirect_url'].to_set,
       group: [*COMMON_ATTRS, :displayname, :members, :writers, :readers].to_set }
   VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
       client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS),
