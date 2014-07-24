@@ -46,4 +46,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "launchy"
   s.add_runtime_dependency "em-http-request", ">= 1.0.0.beta.3"
   s.add_runtime_dependency "json_pure"
+  s.add_runtime_dependency "rack"
 end
