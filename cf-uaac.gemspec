@@ -35,7 +35,6 @@ Gem::Specification.new do |s|
   # dependencies
   s.add_development_dependency "bundler"
   s.add_development_dependency "rake"
-  s.add_development_dependency "rack"
   s.add_development_dependency "rspec"
   s.add_development_dependency "simplecov"
   s.add_development_dependency "simplecov-rcov"
