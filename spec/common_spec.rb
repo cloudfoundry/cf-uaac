@@ -83,6 +83,12 @@ describe CommonCli do
     Config.yaml.should_not include "foo\.bar"
   end
 
+  it "does not attempt to validate ssl certificate" do
+    Cli.run("target --force --skip-ssl-validation https://example.com")
+    Cli.output.string.should include "https://example.com"
+    Config.yaml.should include "skip_ssl_validation: true"
+  end
+
 end
 
 end

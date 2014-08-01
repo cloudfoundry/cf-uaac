@@ -50,8 +50,9 @@ class Cli < BaseCli
     @uaa_logger = Util.default_logger(opts[:trace]? :trace: opts[:debug]? :debug: :warn, @output)
   end
 
-  def self.uaa_info_client(url = Config.target)
-    client = Info.new(url)
+  def self.uaa_info_client(url = Config.target, skip_ssl_validation = false)
+    skip_ssl_validation = Config.config[url][:skip_ssl_validation] if Config.config[url]
+    client = Info.new(url, { skip_ssl_validation: skip_ssl_validation })
     client.logger = @uaa_logger
     client
   end
