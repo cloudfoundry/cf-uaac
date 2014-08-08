@@ -61,13 +61,13 @@ describe InfoCli do
 
   it "sets multiple targets to be fully qualified in config and targets output" do
     Config.load("")
-    Cli.run("target example.com --force")
+    Cli.run("target example1.com --force")
     Cli.run("target example2.com --force")
-    uri = URI.parse(@target)
-    Cli.run("target #{uri.host}:#{uri.port}#{uri.path}")
+    Cli.run("target example.com")
+    Cli.output.string.should_not include "http://example.com"
     Cli.run("targets").should be
-    Config.yaml.should include "https://example.com", "https://example2.com", @target
-    Cli.output.string.should include "https://example.com", "https://example2.com", @target
+    Config.yaml.should include "https://example1.com", "https://example2.com"
+    Cli.output.string.should include "https://example1.com", "https://example2.com"
   end
 
 end

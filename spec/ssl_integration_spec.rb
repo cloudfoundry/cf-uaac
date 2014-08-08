@@ -32,6 +32,10 @@ module CF::UAA
         Cli.configure("", nil, StringIO.new, true)
       end
 
+      before :each do
+        Config.load("")
+      end
+
       describe 'targetting a https URL' do
         it "fails ssl validation without a certificate via HTTPS unless skipped" do
           Cli.run("target #{ENV["UAA_CLIENT_TARGET"]}")

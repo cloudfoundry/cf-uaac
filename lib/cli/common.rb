@@ -155,8 +155,8 @@ class MiscCli < CommonCli
             !Config.target?(url = normalize_url(uaa_url, "http"))
         if opts[:force]
           url = normalize_url(uaa_url, "https")
-        elsif bad_uaa_url((url = normalize_url(uaa_url, "https")), info, opts[:skip_ssl_validation])
-          return gripe msg if msg = bad_uaa_url((url = normalize_url(uaa_url, "http")), info)
+        else
+          return gripe msg if msg = bad_uaa_url((url = normalize_url(uaa_url, "https")), info, opts[:skip_ssl_validation])
         end
       end
       Config.target = url # we now have a canonical url set to https if possible

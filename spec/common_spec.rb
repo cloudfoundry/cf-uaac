@@ -21,9 +21,9 @@ describe CommonCli do
 
   include SpecHelper
 
-  before :each do 
-    Util.default_logger(:trace)
-    Cli.configure("", nil, StringIO.new, true) 
+  before :each do
+    # Util.default_logger(:trace)
+    Cli.configure("", nil, StringIO.new, true)
   end
 
   ["-v", "version", "--version"].each do |opt|
@@ -89,7 +89,12 @@ describe CommonCli do
     Config.yaml.should include "skip_ssl_validation: true"
   end
 
-end
+  it "only attempts http if scheme is http" do
+    Cli.run("target http://example.com")
+    puts Cli.output.string
+    Cli.output.string.should_not include "https"
+  end
 
+end
 end
 
