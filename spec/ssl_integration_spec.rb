@@ -1,3 +1,4 @@
+#--
 # Cloud Foundry
 # Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
 #
@@ -8,6 +9,7 @@
 # separate copyright notices and license terms. Your use of these
 # subcomponents is subject to the terms and conditions of the
 # subcomponent's license, as noted in the LICENSE file.
+#++
 
 require 'spec_helper'
 require 'fiber'
