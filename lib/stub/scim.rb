@@ -61,7 +61,7 @@ class StubScim
         :authorized_grant_types, :scope, :autoapprove,
         :access_token_validity, :refresh_token_validity, :redirect_uri,
         :'signup_redirect_url'].to_set,
-      group: [*COMMON_ATTRS, :displayname, :members, :writers, :readers].to_set }
+      group: [*COMMON_ATTRS, :displayname, :members, :writers, :readers, :external_groups].to_set }
   VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
       client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS),
       group: Set.new(LEGAL_ATTRS[:group] - HIDDEN_ATTRS)}
@@ -279,6 +279,12 @@ class StubScim
     [objs, total]
   end
 
+  def add_group_mapping(external_group, group_id, group_name)
+    group = group_id ? ref_by_id(group_id, :group) : ref_by_name(group_name, :group)
+    return unless group
+    (group[:external_groups] ||= Set.new) << external_group
+    group
+  end
 end
 
 class ScimFilter

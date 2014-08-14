@@ -42,6 +42,20 @@ class GroupCli < CommonCli
     }
   end
 
+  define_option :id, "--id <id>", "map uaa group using group id"
+  define_option :name, "--name <name>", "map uaa scope using group id"
+  desc "group map [external_group]", "Map uaa groups to external groups", :id, :name do |external_group|
+    return gripe "Please provide a group name or id" unless opts[:id] || opts[:name]
+
+    group = opts[:id] ? opts[:id] : opts[:name]
+    is_id = opts[:id] ? true : false
+    pp scim_request { |ua|
+      response = ua.map_group(group, is_id, external_group)
+      raise BadResponse, "no  group id found in response of external group mapping" unless response["groupid"]
+      "Successfully mapped #{response["displayname"]} to #{external_group}"
+    }
+  end
+
   def id_set(objs)
     objs.each_with_object(Set.new) {|o, s|
       id = o.is_a?(String)? o: (o["id"] || o["value"] || o["memberid"])

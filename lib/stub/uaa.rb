@@ -424,6 +424,15 @@ class StubUAAConn < Stub::Base
     end
   end
 
+  route :post, %r{^/Groups/External$}, "content-type" => %r{application/json} do
+    json = Util.json_parse(request.body, :down)
+    external_group = json["externalgroup"]
+    group_name = json["displayname"]
+    group_id = json["groupid"]
+    group = server.scim.add_group_mapping(external_group, group_id, group_name)
+    reply_in_kind(displayName: group[:displayname], externalGroup: external_group, groupId: group[:id])
+  end
+
   def sanitize_int(arg, default, min, max = nil)
     return default if arg.nil?
     return unless arg.to_i.to_s == arg && (i = arg.to_i) >= min

@@ -163,6 +163,18 @@ describe GroupCli do
     Cli.output.string.should_not match /members/i # they should really be gone
   end
 
+  it "maps a uaa scope to an external group" do
+    Cli.run "context #{@test_client}"
+
+    Cli.run "group map ldap-id --name #{@test_group}"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+
+    Cli.run("group get #{@test_group}")
+    test_group_id = Cli.output.string.match(/id: ([\S]+)/)[1]
+    Cli.run "group map ldap-id --id #{test_group_id}"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+  end
+
 end
 
 end
