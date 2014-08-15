@@ -163,6 +163,16 @@ describe GroupCli do
     Cli.output.string.should_not match /members/i # they should really be gone
   end
 
+  it "lists all the mappings between uaa scopes and external groups" do
+    Cli.run "context #{@test_client}"
+    Cli.run "group map ldap-id --name #{@test_group}"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+
+    Cli.run "group mappings"
+    Cli.output.string.should include("totalresults: 1")
+    Cli.output.string.should include("#{@test_group}: ldap-id")
+  end
+
   it "maps a uaa scope to an external group" do
     Cli.run "context #{@test_client}"
 

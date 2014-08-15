@@ -285,6 +285,18 @@ class StubScim
     (group[:external_groups] ||= Set.new) << external_group
     group
   end
+
+  def get_group_mappings
+    group_mappings = []
+    @things_by_id.each do |id, thing|
+      if thing[:rtype] == :group
+        thing[:external_groups].each do |external_group|
+          group_mappings << { groupid: thing[:id], displayname: thing[:displayname], externalgroup: external_group }
+        end if thing[:external_groups]
+      end
+    end unless @things_by_id.empty?
+    group_mappings
+  end
 end
 
 class ScimFilter

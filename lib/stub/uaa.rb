@@ -433,6 +433,19 @@ class StubUAAConn < Stub::Base
     reply_in_kind(displayName: group[:displayname], externalGroup: external_group, groupId: group[:id])
   end
 
+  route :get, %r{^/Groups/External/list(\?|$)(.*)} do
+    return unless valid_token("scim.read")
+
+    query_params = CGI::parse(match[2])
+    start_index = (start_index = query_params[:startIndex].first && !start_index.empty?) ? start_index.to_i : 1
+    count =  (count = query_params[:count].first && !count.empty?) ? count.to_i : 100
+
+    group_mappings = server.scim.get_group_mappings
+    paginated_group_mappings = group_mappings.slice(start_index-1, count)
+
+    reply_in_kind(resources: paginated_group_mappings, itemsPerPage: count, startIndex: start_index, totalResults: group_mappings.length)
+  end
+
   def sanitize_int(arg, default, min, max = nil)
     return default if arg.nil?
     return unless arg.to_i.to_s == arg && (i = arg.to_i) >= min
