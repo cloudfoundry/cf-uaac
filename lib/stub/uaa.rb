@@ -446,6 +446,18 @@ class StubUAAConn < Stub::Base
     reply_in_kind(resources: paginated_group_mappings, itemsPerPage: count, startIndex: start_index, totalResults: group_mappings.length)
   end
 
+  route :delete, %r{^/Groups/External/id/([^/]+)/([^/]+)$} do
+    return unless valid_token("scim.write")
+
+    group_id = match[1]
+    external_group = match[2]
+    begin
+      server.scim.delete_group_mapping(group_id, external_group)
+    rescue NotFound
+      not_found("Mapping for group ID #{match[1]} and external group #{match[2]}")
+    end
+  end
+
   def sanitize_int(arg, default, min, max = nil)
     return default if arg.nil?
     return unless arg.to_i.to_s == arg && (i = arg.to_i) >= min

@@ -286,6 +286,12 @@ class StubScim
     group
   end
 
+  def delete_group_mapping(group_id, external_group)
+    raise NotFound unless group = ref_by_id(group_id, :group)
+    raise NotFound unless group[:external_groups] && group[:external_groups].include?(external_group)
+    group[:external_groups].delete(external_group)
+  end
+
   def get_group_mappings
     group_mappings = []
     @things_by_id.each do |id, thing|

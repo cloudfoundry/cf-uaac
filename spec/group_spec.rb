@@ -169,7 +169,6 @@ describe GroupCli do
     Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
 
     Cli.run "group mappings"
-    Cli.output.string.should include("totalresults: 1")
     Cli.output.string.should include("#{@test_group}: ldap-id")
   end
 
@@ -185,6 +184,20 @@ describe GroupCli do
     Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
   end
 
+  it "unmaps a uaa scope from an external group" do
+    Cli.run "context #{@test_client}"
+
+    Cli.run "group map ldap-id --name #{@test_group}"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+
+    Cli.run("group get #{@test_group}")
+    test_group_id = Cli.output.string.match(/id: ([\S]+)/)[1]
+    Cli.run "group unmap #{test_group_id} ldap-id"
+    Cli.output.string.should include "Successfully unmapped ldap-id from #{test_group_id}"
+
+    Cli.run "group unmap #{test_group_id} unmapped_ldap-id"
+    Cli.output.string.should include "NotFound"
+  end
 end
 
 end
