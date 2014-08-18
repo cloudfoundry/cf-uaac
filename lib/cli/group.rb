@@ -42,15 +42,20 @@ class GroupCli < CommonCli
     }
   end
 
-  desc "group mappings", "List all the mappings between uaa scopes and external groups" do
-    response = scim_request { |scim| scim.list_group_mappings }
+  define_option :start, "--start <start>", "show results starting at this index"
+  define_option :count, "--count <count>", "number of results to show"
+  desc "group mappings", "List all the mappings between uaa scopes and external groups", :start, :count do
+    start, count = opts[:start], opts[:count]
+    return gripe "Please enter a valid start index" if start unless is_integer?(start)
+    return gripe "Please enter a valid count" if count unless is_natural_number?(count)
+
+    response = scim_request { |scim| scim.list_group_mappings(start, count) }
     grouped_group_mappings = {}
     response["resources"].each do |resource|
         grouped_group_mappings[resource['displayname']] ||= []
         grouped_group_mappings[resource['displayname']] << resource['externalgroup']
     end
     response["resources"] = grouped_group_mappings
-    puts response.inspect
     pp response
   end
 
@@ -125,6 +130,16 @@ class GroupCli < CommonCli
     pp scim_request { |scim| update_members(scim, name, "writers", users, false) }
   end
 
+  private
+
+  def is_natural_number?(input)
+    is_integer?(input) && input.to_i > -1
+  end
+
+  def is_integer?(input)
+    input && (input.to_i.to_s == input)
+  end
 end
 
 end
+

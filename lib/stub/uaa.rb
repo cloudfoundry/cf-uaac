@@ -437,11 +437,15 @@ class StubUAAConn < Stub::Base
     return unless valid_token("scim.read")
 
     query_params = CGI::parse(match[2])
-    start_index = (start_index = query_params[:startIndex].first && !start_index.empty?) ? start_index.to_i : 1
-    count =  (count = query_params[:count].first && !count.empty?) ? count.to_i : 100
+
+    start_index_param = query_params["startIndex"].first
+    start_index = start_index_param.empty? ? 1 : start_index_param.to_i
+
+    count_param = query_params["count"].first
+    count = count_param.empty? ? 100 : count_param.to_i
 
     group_mappings = server.scim.get_group_mappings
-    paginated_group_mappings = group_mappings.slice(start_index-1, count)
+    paginated_group_mappings = group_mappings.slice([start_index,1].max - 1, count)
 
     reply_in_kind(resources: paginated_group_mappings, itemsPerPage: count, startIndex: start_index, totalResults: group_mappings.length)
   end
