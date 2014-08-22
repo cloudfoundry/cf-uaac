@@ -50,13 +50,16 @@ class GroupCli < CommonCli
     return gripe "Please enter a valid count" if count unless is_natural_number?(count)
 
     response = scim_request { |scim| scim.list_group_mappings(start, count) }
-    grouped_group_mappings = {}
-    response["resources"].each do |resource|
+
+    if response
+      grouped_group_mappings = {}
+      response["resources"].each do |resource|
         grouped_group_mappings[resource['displayname']] ||= []
         grouped_group_mappings[resource['displayname']] << resource['externalgroup']
+      end
+      response["resources"] = grouped_group_mappings
+      pp response
     end
-    response["resources"] = grouped_group_mappings
-    pp response
   end
 
   define_option :id, "--id <id>", "map uaa group using group id"

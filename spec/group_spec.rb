@@ -162,6 +162,13 @@ describe GroupCli do
     Cli.output.string.should_not match /members/i # they should really be gone
   end
 
+  it "does not blow up if scope is invalid" do
+    Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}m -p #{@test_pwd}").should be
+    Cli.run "group map ldap-id --name #{@test_group}"
+    Cli.run "group mappings"
+    Cli.output.string.should_not include "NoMethodError"
+  end
+
   it "lists all the mappings between uaa scopes and external groups" do
     Cli.run "context #{@test_client}"
     Cli.run "group map ldap-id --name #{@test_group}"
