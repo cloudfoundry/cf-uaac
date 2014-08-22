@@ -74,6 +74,8 @@ class GroupCli < CommonCli
   end
 
   desc "group unmap [group_id] [external_group]", "Unmaps an external group from a uaa group" do |group_id, external_group|
+    return gripe "Please provide a group id and external group" unless group_id && external_group
+
     pp scim_request { |ua|
       ua.unmap_group(group_id, external_group)
       "Successfully unmapped #{external_group} from #{group_id}"

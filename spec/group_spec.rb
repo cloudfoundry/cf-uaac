@@ -228,6 +228,13 @@ describe GroupCli do
 
     Cli.run("group get #{@test_group}")
     test_group_id = Cli.output.string.match(/id: ([\S]+)/)[1]
+
+    Cli.run "group unmap"
+    Cli.output.string.should include "Please provide a group id and external group"
+
+    Cli.run "group unmap #{test_group_id}"
+    Cli.output.string.should include "Please provide a group id and external group"
+
     Cli.run "group unmap #{test_group_id} ldap-id"
     Cli.output.string.should include "Successfully unmapped ldap-id from #{test_group_id}"
 
