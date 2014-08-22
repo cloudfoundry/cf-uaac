@@ -60,7 +60,7 @@ class GroupCli < CommonCli
   end
 
   define_option :id, "--id <id>", "map uaa group using group id"
-  define_option :name, "--name <name>", "map uaa scope using group id"
+  define_option :name, "--name <name>", "map uaa scope using group name"
   desc "group map [external_group]", "Map uaa groups to external groups", :id, :name do |external_group|
     return gripe "Please provide a group name or id" unless opts[:id] || opts[:name]
 
