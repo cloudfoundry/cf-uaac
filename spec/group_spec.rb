@@ -218,6 +218,12 @@ describe GroupCli do
   it "maps a uaa scope to an external group" do
     Cli.run "context #{@test_client}"
 
+    Cli.run "group map ldap-id"
+    Cli.output.string.should include "Please provide a group name or id"
+
+    Cli.run "group map --name #{@test_group}"
+    Cli.output.string.should include "Please provide an external group"
+
     Cli.run "group map ldap-id --name #{@test_group}"
     Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
 

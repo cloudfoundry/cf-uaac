@@ -66,6 +66,7 @@ class GroupCli < CommonCli
   define_option :name, "--name <name>", "map uaa scope using group name"
   desc "group map [external_group]", "Map uaa groups to external groups", :id, :name do |external_group|
     return gripe "Please provide a group name or id" unless opts[:id] || opts[:name]
+    return gripe "Please provide an external group" unless external_group
 
     group = opts[:id] ? opts[:id] : opts[:name]
     is_id = opts[:id] ? true : false
