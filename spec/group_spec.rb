@@ -234,18 +234,20 @@ describe GroupCli do
     Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
 
     Cli.run("group get #{@test_group}")
-    test_group_id = Cli.output.string.match(/id: ([\S]+)/)[1]
 
     Cli.run "group unmap"
-    Cli.output.string.should include "Please provide a group id and external group"
+    Cli.output.string.should include "Please provide a group name and external group"
 
-    Cli.run "group unmap #{test_group_id}"
-    Cli.output.string.should include "Please provide a group id and external group"
+    Cli.run "group unmap #{@test_group}"
+    Cli.output.string.should include "Please provide a group name and external group"
 
-    Cli.run "group unmap #{test_group_id} ldap-id"
-    Cli.output.string.should include "Successfully unmapped ldap-id from #{test_group_id}"
+    Cli.run "group unmap #{@test_group} ldap-id"
+    Cli.output.string.should include "Successfully unmapped ldap-id from #{@test_group}"
 
-    Cli.run "group unmap #{test_group_id} unmapped_ldap-id"
+    Cli.run "group unmap nonexistent_group unmapped_ldap-id"
+    Cli.output.string.should include "Group nonexistent_group not found"
+
+    Cli.run "group unmap #{@test_group} unmapped_ldap-id"
     Cli.output.string.should include "NotFound"
   end
 end
