@@ -180,17 +180,22 @@ describe GroupCli do
 
   it "lists mappings between uaa scopes and external groups with pagination" do
     Cli.run "context #{@test_client}"
+    Cli.run("group add new-group")
+
     Cli.run "group map ldap-id --name #{@test_group}"
     Cli.run "group map ldap-id-2 --name #{@test_group}"
+    Cli.run "group map ldap-id --name new-group"
     Cli.run "group map ldap-id-3 --name #{@test_group}"
+    Cli.run "group map ldap-id-3 --name new-group"
     Cli.run "group map ldap-id-4 --name #{@test_group}"
+
     Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
 
     Cli.run "group mappings"
-    Cli.output.string.should include("ldap-id", "ldap-id-2", "ldap-id-3", "ldap-id-4")
+    Cli.output.string.should include("#{@test_group}: ldap-id", "#{@test_group}: ldap-id-2", "#{@test_group}: ldap-id-3", "#{@test_group}: ldap-id-4")
 
     Cli.run "group mappings --start 1 --count 3"
-    Cli.output.string.should include("ldap-id", "ldap-id-2", "ldap-id-3")
+    Cli.output.string.should include("#{@test_group}: ldap-id", "#{@test_group}: ldap-id-2", "#{@test_group}: ldap-id-3")
     Cli.output.string.should_not include("ldap-id-4")
 
     Cli.run "group mappings --start 1 --count -3"
@@ -201,18 +206,18 @@ describe GroupCli do
     Cli.output.string.should_not include("ldap-id", "ldap-id-2", "ldap-id-3")
     Cli.output.string.should include("Please enter a valid count")
 
-    Cli.run "group mappings --start -1 --count 3"
-    Cli.output.string.should include("ldap-id", "ldap-id-2", "ldap-id-3")
+    Cli.run "group mappings --start -1 --count 5"
+    Cli.output.string.should include("#{@test_group}: ldap-id", "#{@test_group}: ldap-id-2", "#{@test_group}: ldap-id-3")
 
     Cli.run "group mappings --start a --count 1"
     Cli.output.string.should_not include("ldap-id", "ldap-id-2", "ldap-id-3")
     Cli.output.string.should include("Please enter a valid start index")
 
     Cli.run "group mappings --start 2"
-    Cli.output.string.should include("ldap-id-2", "ldap-id-3", "ldap-id-4")
+    Cli.output.string.should include("#{@test_group}: ldap-id-2", "#{@test_group}: ldap-id-3", "#{@test_group}: ldap-id-4")
 
     Cli.run "group mappings --count 2"
-    Cli.output.string.should include("ldap-id", "ldap-id-2")
+    Cli.output.string.should include("#{@test_group}: ldap-id", "#{@test_group}: ldap-id-2")
   end
 
   it "maps a uaa scope to an external group" do
