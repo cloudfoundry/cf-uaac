@@ -61,6 +61,44 @@ describe UserCli do
     Cli.output.string.should =~ /#{@test_user}/
   end
 
+  describe "get list of users" do
+    before :all do
+      i = 1
+      count = 15
+      while i < count  do
+        Cli.run("user add user-#{i} -p password-#{i} " +
+                    "--emails user-#{i}@example.com --given_name user#{i} " +
+                    "--phones 801-555-243#{i} --family_name jonES")
+        i +=1
+      end
+    end
+
+    after :all do
+      i = 1
+      count = 15
+      while i < count  do
+        Cli.run("user delete user-#{i}")
+        i +=1
+      end
+    end
+
+    it "gets users with default pagination" do
+      Cli.run("users")
+      Cli.output.string.should include "user-1"
+      Cli.output.string.should include "user-2"
+      Cli.output.string.should include "user-14"
+      # Default page size for stub uaa is 15
+      Cli.output.string.should_not include "user-15"
+    end
+
+    it "gets count users with pagination" do
+      Cli.run("users --start 1 --count 3")
+      Cli.output.string.should include "user-1"
+      Cli.output.string.should include "user-2"
+      Cli.output.string.should_not include "user-3"
+    end
+  end
+
 end
 
 end

@@ -83,9 +83,15 @@ class CommonCli < Topic
   def scim_common_list(type, filter)
     pp scim_request { |sr|
       query = { attributes: opts[:attrs], filter: filter }
-      info = opts[:start] || opts[:count] ?
-        sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count])):
-        sr.all_pages(type, query)
+      info = nil
+      if type == :user
+        info = sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count]))
+      else
+        info = opts[:start] || opts[:count] ?
+               sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count])):
+               sr.all_pages(type, query)
+      end
+
       nattr = sr.name_attr(type).downcase
       info.is_a?(Array) && info.length > 0 && info[0][nattr] ?
           info.each_with_object({}) { |v, h| h[v.delete(nattr)] = v } : info
