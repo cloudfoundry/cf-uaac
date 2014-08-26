@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'stringio'
-require 'cli'
+require 'uaac_cli'
 
 module CF::UAA
 

@@ -14,7 +14,7 @@
 #++
 
 $:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
-require 'cli'
+require 'uaac_cli'
 
 client = ENV["UAA_CLIENT_ID"] || "admin"
 secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"

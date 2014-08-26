@@ -12,7 +12,7 @@
 #++
 
 require 'spec_helper'
-require 'cli'
+require 'uaac_cli'
 
 module CF::UAA
 

@@ -14,7 +14,7 @@
 require 'spec_helper'
 require 'fiber'
 require 'em-http'
-require 'cli'
+require 'uaac_cli'
 require 'stub/server'
 
 module CF::UAA
