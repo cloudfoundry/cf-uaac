@@ -14,5 +14,4 @@
 source "http://rubygems.org"
 
 # Specify your gem's dependencies in uaa.gemspec
-gem "cf-uaa-lib", :git => 'https://github.com/cloudfoundry/cf-uaa-lib.git', :branch => 'feature/group-mappings'
 gemspec
