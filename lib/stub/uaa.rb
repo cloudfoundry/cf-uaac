@@ -74,6 +74,11 @@ class StubUAAConn < Stub::Base
     reply_in_kind(202, parsed.merge(:updated => 42))
   end
 
+  route :put, '/fake-endpoint-empty-response' do
+    return unless valid_token("clients.read")
+    reply.empty()
+  end
+
   route :get, '/my-fake-endpoint' do
     return unless valid_token("clients.read")
     reply_in_kind(200, "some fake response text")

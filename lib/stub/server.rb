@@ -117,6 +117,11 @@ class Reply
     @body = "<html><body>#{info}</body></html>"
     nil
   end
+  def empty()
+    @status = 204
+    @body = ''
+    nil
+  end
   def set_cookie(name, value, options = {})
     @cookies << options.each_with_object("#{name}=#{value}") { |(k, v), o|
       o << (v.nil? ? "; #{k}" : "; #{k}=#{v}")
