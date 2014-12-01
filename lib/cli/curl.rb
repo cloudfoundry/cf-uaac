@@ -84,7 +84,7 @@ module CF::UAA
       end
 
       say "RESPONSE BODY:"
-      if response['Content-Type'].include?('application/json')
+      if !response['Content-Type'].nil? && response['Content-Type'].include?('application/json')
         parsed = JSON.parse(response.body)
         formatted = JSON.pretty_generate(parsed)
         say formatted
