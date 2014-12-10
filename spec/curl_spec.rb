@@ -64,6 +64,16 @@ module CF::UAA
       Cli.output.string.should include "\"updated\": 42"
     end
 
+    it "handles 204 No Content response when Content-Type is missing" do
+      pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
+      Cli.run("curl -X PUT /fake-endpoint-empty-response")
+
+      Cli.output.string.should include "PUT #{@target}/fake-endpoint-empty-response"
+      Cli.output.string.should include "204 NO CONTENT"
+      Cli.output.string.should include "RESPONSE BODY:"
+      Cli.output.string.should_not include "error"
+    end
+
     it "uses headers passed from the command line" do
       pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
 
