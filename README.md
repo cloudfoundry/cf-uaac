@@ -1,6 +1,7 @@
 # CloudFoundry UAA Command Line Client
 
 [![Build Status](https://travis-ci.org/cloudfoundry/cf-uaac.svg?branch=master)](https://travis-ci.org/cloudfoundry/cf-uaac)
+[![Gem Version](https://badge.fury.io/rb/cf-uaac.png)](https://rubygems.org/gems/cf-uaac)
 
 ## Build the gem
 
