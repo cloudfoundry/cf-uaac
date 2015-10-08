@@ -67,7 +67,9 @@ class CommonCli < Topic
   end
 
   def scim_request
-    yield Scim.new(Config.target, auth_header, { skip_ssl_validation: Config.target_value(:skip_ssl_validation) })
+    yield Scim.new(Config.target, auth_header, {
+      skip_ssl_validation: Config.target_value(:skip_ssl_validation),
+      ssl_ca_file: Config.target_value(:ca_cert) })
   rescue Exception => e
     complain e
   end
@@ -141,32 +143,34 @@ class MiscCli < CommonCli
     url.to_s.to_sym
   end
 
-  def bad_uaa_url(url, info, skip_ssl_validation = false)
-    info.replace(@cli_class.uaa_info_client(url.to_s, skip_ssl_validation).server)
+  def bad_uaa_url(url, info, skip_ssl_validation = false, ca_cert = nil)
+    info.replace(@cli_class.uaa_info_client(url.to_s, skip_ssl_validation, ca_cert).server)
     nil
   rescue Exception => e
     "failed to access #{url}: #{e.message}"
   end
 
+  define_option :ca_cert, "--ca-cert [file]", "use the given CA certificate to validate the target's SSL certificate"
   define_option :skip_ssl_validation, "--skip-ssl-validation", "do not attempt to validate ssl certificate"
   define_option :force, "--[no-]force", "-f", "set even if target does not respond"
-  desc "target [uaa_url]", "Display current or set new target", :force, :skip_ssl_validation do |uaa_url|
+  desc "target [uaa_url]", "Display current or set new target", :force, :ca_cert, :skip_ssl_validation do |uaa_url|
     msg, info = nil, {}
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url
         return gripe "invalid target index" unless url = Config.target?(uaa_url.to_i)
       elsif url = normalize_url(uaa_url)
-        return gripe msg if (msg = bad_uaa_url(url, info, opts[:skip_ssl_validation])) unless opts[:force] || Config.target?(url)
+        return gripe msg if (msg = bad_uaa_url(url, info, opts[:skip_ssl_validation], opts[:ca_cert])) unless opts[:force] || Config.target?(url)
       elsif !Config.target?(url = normalize_url(uaa_url, "https")) &&
             !Config.target?(url = normalize_url(uaa_url, "http"))
         if opts[:force]
           url = normalize_url(uaa_url, "https")
         else
-          return gripe msg if msg = bad_uaa_url((url = normalize_url(uaa_url, "https")), info, opts[:skip_ssl_validation])
+          return gripe msg if msg = bad_uaa_url((url = normalize_url(uaa_url, "https")), info, opts[:skip_ssl_validation], opts[:ca_cert])
         end
       end
       Config.target = url # we now have a canonical url set to https if possible
       Config.target_opts(skip_ssl_validation: true) if opts[:skip_ssl_validation]
+      Config.target_opts(ca_cert: opts[:ca_cert])
       update_target_info(info) if info[:prompts]
     end
     return say "no target set" unless Config.target

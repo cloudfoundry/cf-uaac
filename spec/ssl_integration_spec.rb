@@ -50,11 +50,30 @@ module CF::UAA
         end
       end
 
+      describe 'targetting a https URL' do
+        it "fails ssl validation without a certificate via HTTPS" do
+          Cli.run("target #{ENV["UAA_CLIENT_TARGET"]}")
+          Cli.output.string.should include "Invalid SSL Cert"
+        end
+
+        it "passes ssl validation if a valid rootCA is passed with an option" do
+          Cli.run("target #{ENV["UAA_CLIENT_TARGET"]} --ca-cert #{ENV["UAA_CLIENT_CA_CERT_PATH"]}")
+          Cli.output.string.should include "Target: #{ENV["UAA_CLIENT_TARGET"]}"
+          Cli.output.string.should_not match /invalid/i
+        end
+      end
+
       describe 'targeting a URL without specifying the scheme' do
         it "uses HTTPS if --skip-ssl-validation is true" do
           Cli.run("target #{@url.host}:#{@url.port}/#{@url.path} --skip-ssl-validation")
           Cli.output.string.should include "https"
           Cli.output.string.should_not include "Invalid SSL Cert"
+        end
+
+        it "uses HTTPS if --ca-cert is true" do
+          Cli.run("target #{@url.host}:#{@url.port}/#{@url.path} --ca-cert #{ENV["UAA_CLIENT_CA_CERT_PATH"]}")
+          Cli.output.string.should include "https"
+          Cli.output.string.should_not match /invalid/i
         end
       end
 
@@ -62,7 +81,19 @@ module CF::UAA
         it "does not raise SSLException for the same target" do
           Cli.run("target #{ENV["UAA_CLIENT_TARGET"]} --skip-ssl-validation")
           Cli.run("token client get foo -s bar")
-          Cli.output.string.should_not include "Invalid SSL Cert"
+          Cli.output.string.should_not match /invalid/i
+          Cli.run("groups")
+          Cli.output.string.should_not match /invalid/i
+        end
+      end
+
+      describe 'using other commands after setting ca-cert' do
+        it "does not raise SSLException for the same target" do
+          Cli.run("target #{ENV["UAA_CLIENT_TARGET"]} --ca-cert #{ENV["UAA_CLIENT_CA_CERT_PATH"]}")
+          Cli.run("token client get foo -s bar")
+          Cli.output.string.should_not match /invalid/i
+          Cli.run("groups")
+          Cli.output.string.should_not match /invalid/i
         end
       end
     end
