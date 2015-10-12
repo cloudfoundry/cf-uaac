@@ -89,6 +89,12 @@ describe CommonCli do
     Config.yaml.should include "skip_ssl_validation: true"
   end
 
+  it "accepts a root CA as a commandline parameter" do
+    Cli.run("target --force --ca-cert dir/rootCA.pem https://example.com")
+    Cli.output.string.should include "https://example.com"
+    Config.yaml.should include "ca_cert: dir/rootCA.pem"
+  end
+
   it "only attempts http if scheme is http" do
     Cli.run("target http://example.com")
     puts Cli.output.string
