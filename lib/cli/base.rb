@@ -241,7 +241,9 @@ class BaseCli
     @output ||= $stdout
     @output.string = "" if @output.respond_to?(:string)
     args = Shellwords.split(args) if args.respond_to?(:split)
-    @option_defs, @parser, orig = {}, OptionParser.new, args
+    @option_defs ||= {}
+    orig = args
+    @parser = OptionParser.new
     opts = @topics.each_with_object({}) do |tpc, o|
       tpc.option_defs.each do |k, optdef|
         @parser.on(*optdef) do |v|

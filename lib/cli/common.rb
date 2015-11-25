@@ -69,7 +69,8 @@ class CommonCli < Topic
   def scim_request
     yield Scim.new(Config.target, auth_header, {
       skip_ssl_validation: Config.target_value(:skip_ssl_validation),
-      ssl_ca_file: Config.target_value(:ca_cert) })
+      ssl_ca_file: Config.target_value(:ca_cert),
+      zone: opts[:zone] })
   rescue Exception => e
     complain e
   end
@@ -124,6 +125,7 @@ class MiscCli < CommonCli
   define_option :help, "--[no-]help", "-h", "display helpful information"
   define_option :version, "--[no-]version", "-v", "show version"
   define_option :config, "--config [string|file]", "file to get/save configuration information or yaml string"
+  define_option :zone, "-z", "--zone <subdomain>", "subdomain of zone to manage"
 
   desc "help [topic|command...]", "Display summary or details of command or topic" do |*args|
     # handle hidden command, output commands in form for bash completion
