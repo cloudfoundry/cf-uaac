@@ -35,6 +35,18 @@ Now that UAAC has your token, you're able to run commands and hit the endpoints 
 
 To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
 
+
+## Creating clients
+
+Authenticate as `admin`, or a client with the right permissions: `clients.admin` or `clients.write`.
+
+`uaac client add -i` brings up the interactive interface. If entering multiple values, separate them with commas.
+
+**Note that scopes and authorities are different in the context of a client.** Scopes a list of permitted scopes for this client to obtain on behalf of a user, while authorities is a list of granted authorities for the client, such as `uaa.admin` or `scim.invite`. When using the `uaac contexts` command to bring up the list of contexts, the `scopes` for a client correspond to the values added to `authorities` when creating a user.
+
+
+
+
 ## Tests
 
 Run the tests with rake:
