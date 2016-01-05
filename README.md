@@ -17,11 +17,17 @@ gem build cf-uaac.gemspec
 gem install cf-uaac*.gem
 ```
 
+
+## Concepts
+
+The user uses a client (like a webapp, or uaac) to do things. The client and the user have different secrets; the user's secret is a password, and the client's secret is a hex string.
+
+
 ## Run it
 
     $ uaac help
     $ uaac target uaa.cloudfoundry.com
-    $ uaac token get <your-cf-username>
+    $ uaac token get <cf username> (-s <client secret>)
     $ uaac token decode
 
 To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
