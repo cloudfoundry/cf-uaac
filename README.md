@@ -23,12 +23,15 @@ gem install cf-uaac*.gem
 The user uses a client (like a webapp, or uaac) to do things. The client and the user have different secrets; the user's secret is a password, and the client's secret is a hex string.
 
 
-## Run it
+## Connecting and logging in
 
-    $ uaac help
-    $ uaac target uaa.cloudfoundry.com
-    $ uaac token get <cf username> (-s <client secret>)
-    $ uaac token decode
+* `uaac help` opens up the help menu and shows a full list of commands.
+* `uaac target` tells UAAC which UAA you're targeting. e.g. `uaa.example.io`.
+* `uaac target <target-number>` lets you choose a registered target.
+* `uaac targets` lists all registered targets.
+* `uaac token client get (-s <your-client-secret>)` authenticates and gets your token so it can be used by UAAC. The `-s` or `--secret` flag is for inputing your secret, otherwise it will be asked for by UAAC.
+
+Now that UAAC has your token, you're able to run commands and hit the endpoints that your client has the proper scopes for. A list of scopes can be found in [UAA's API documentation.](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.rst#scopes-authorized-by-the-uaa)
 
 To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
 
