@@ -3,18 +3,19 @@
 [![Build Status](https://travis-ci.org/cloudfoundry/cf-uaac.svg?branch=master)](https://travis-ci.org/cloudfoundry/cf-uaac)
 [![Gem Version](https://badge.fury.io/rb/cf-uaac.png)](https://rubygems.org/gems/cf-uaac)
 
-## Build the gem
+## Installation
 
-    $ bundle install
-    $ gem build cf-uaac.gemspec
+From Rubygems:
 
-## Install it
+`gem install cf-uaac`
 
-    $ gem install cf-uaac*.gem
+Or to build and install the gem:
 
-or from rubygems
-
-    $ gem install cf-uaac
+```
+bundle install
+gem build cf-uaac.gemspec
+gem install cf-uaac*.gem
+```
 
 ## Run it
 
