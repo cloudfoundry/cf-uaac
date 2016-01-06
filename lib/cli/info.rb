@@ -37,7 +37,7 @@ class InfoCli < CommonCli
   desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
     info = misc_request {
       @cli_class.uaa_info_client.validation_key(
-          (clientname if opts.key?(:client)),
+          (clientid if opts.key?(:client)),
           (clientsecret if opts.key?(:client))
       )
     }
@@ -48,7 +48,7 @@ class InfoCli < CommonCli
   end
 
   desc "stats", "Show UAA's current usage statistics", :client, :secret do
-    pp misc_request { @cli_class.uaa_info_client.varz(clientname, clientsecret) }
+    pp misc_request { @cli_class.uaa_info_client.varz(clientid, clientsecret) }
   end
 
   desc "password strength [password]", "calculate strength score of a password" do |pwd|

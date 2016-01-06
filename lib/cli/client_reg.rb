@@ -20,6 +20,7 @@ class ClientCli < CommonCli
   topic "Client Application Registrations", "reg"
 
   CLIENT_SCHEMA = {
+      :name => "string",
       :scope => "list",
       :authorized_grant_types => "list",
       :authorities => "list",
@@ -57,17 +58,17 @@ class ClientCli < CommonCli
     scim_common_list(:client, filter)
   end
 
-  desc "client get [name]", "Get specific client registration", :attrs do |name|
-    pp scim_request { |sr| scim_get_object(sr, :client, clientname(name), opts[:attrs]) }
+  desc "client get [id]", "Get specific client registration", :attrs do |id|
+    pp scim_request { |sr| scim_get_object(sr, :client, clientid(id), opts[:attrs]) }
   end
 
   define_option :clone, "--clone <other>", "get default settings from other"
   define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
 
-  desc "client add [name]", "Add client registration",
-      *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |name|
+  desc "client add [id]", "Add client registration",
+      *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |id|
     pp scim_request { |cr|
-      opts[:client_id] = clientname(name)
+      opts[:client_id] = clientid(id)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
@@ -75,10 +76,10 @@ class ClientCli < CommonCli
     }
   end
 
-  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys,
-      :del_attrs, :interact do |name|
+  desc "client update [id]", "Update client registration", *CLIENT_SCHEMA.keys,
+      :del_attrs, :interact do |id|
     pp scim_request { |cr|
-      opts[:client_id] = clientname(name)
+      opts[:client_id] = clientid(id)
       orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :sym)
       info = client_info(orig)
       info.any? { |k, v| v != orig[k] } ? cr.put(:client, info) :
@@ -86,16 +87,16 @@ class ClientCli < CommonCli
     }
   end
 
-  desc "client delete [name]", "Delete client registration" do |name|
+  desc "client delete [id]", "Delete client registration" do |id|
     pp scim_request { |cr|
-      cr.delete(:client, clientname(name))
+      cr.delete(:client, clientid(id))
       "client registration deleted"
     }
   end
 
-  desc "secret set [name]", "Set client secret", :secret do |name|
+  desc "secret set [id]", "Set client secret", :secret do |id|
     pp scim_request { |cr|
-      cr.change_secret(clientname(name), verified_pwd("New secret", opts[:secret]))
+      cr.change_secret(clientid(id), verified_pwd("New secret", opts[:secret]))
       "client secret successfully set"
     }
   end

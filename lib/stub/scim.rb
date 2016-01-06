@@ -57,7 +57,7 @@ class StubScim
         :timezone, :active, :password, :emails, :phonenumbers, :ims, :photos,
         :entitlements, :roles, :x509certificates, :name, :addresses,
         :authorizations, :groups].to_set,
-      client: [*COMMON_ATTRS, :client_id, :client_secret, :authorities,
+      client: [*COMMON_ATTRS, :client_id, :name, :client_secret, :authorities,
         :authorized_grant_types, :scope, :autoapprove,
         :access_token_validity, :refresh_token_validity, :redirect_uri,
         :'signup_redirect_url'].to_set,

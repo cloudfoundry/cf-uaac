@@ -122,7 +122,7 @@ class TokenCli < CommonCli
   define_option :secret, "--secret <secret>", "-s", "client secret"
   desc "token client get [name]",
       "Gets a token with client credentials grant", :secret, :scope do |id|
-    reply = issuer_request(clientname(id), clientsecret) { |ti|
+    reply = issuer_request(clientid(id), clientsecret) { |ti|
       ti.client_credentials_grant(opts[:scope]).info
     }
     say_success "client credentials" if set_context(reply)
@@ -131,7 +131,7 @@ class TokenCli < CommonCli
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       :secret, :password, :scope do |client, user|
-    reply = issuer_request(clientname(client), clientsecret) { |ti|
+    reply = issuer_request(clientid(client), clientsecret) { |ti|
         ti.owner_password_grant(user = username(user), userpwd, opts[:scope]).info
     }
     say_success "owner password" if set_context(reply)
@@ -139,7 +139,7 @@ class TokenCli < CommonCli
 
   desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", :client, :secret, :scope do |rtok|
     rtok ||= Config.value(:refresh_token)
-    reply = issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
+    reply = issuer_request(clientid, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
     say_success "refresh" if set_context(reply)
   end
 
@@ -180,7 +180,7 @@ class TokenCli < CommonCli
   define_option :port, "--port <number>", "pin internal server to specific port"
   define_option :cf, "--[no-]cf", "save token in the ~/.cf_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      :client, :secret, :scope, :cf, :port do use_browser(clientname, clientsecret) end
+      :client, :secret, :scope, :cf, :port do use_browser(clientid, clientsecret) end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
       :client, :scope, :cf, :port do use_browser opts[:client] || "cf" end
