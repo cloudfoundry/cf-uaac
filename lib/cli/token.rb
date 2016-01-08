@@ -120,7 +120,7 @@ class TokenCli < CommonCli
   end
 
   define_option :secret, "--secret <secret>", "-s", "client secret"
-  desc "token client get [name]",
+  desc "token client get [id]",
       "Gets a token with client credentials grant", :secret, :scope do |id|
     reply = issuer_request(clientid(id), clientsecret) { |ti|
       ti.client_credentials_grant(opts[:scope]).info
