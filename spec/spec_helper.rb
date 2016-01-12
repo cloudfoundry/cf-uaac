@@ -49,8 +49,10 @@ module SpecHelper
   end
 
   def setup_target(opts = {})
+    test_client = "test_client_#{Time.now.to_i}"
     opts = { authorities: "clients.read,scim.read,scim.write,uaa.resource",
       grant_types: "client_credentials,password,refresh_token",
+      name: test_client,
       scope: "openid,password.write,scim.me,scim.read",
       autoapprove: "openid,password.write,scim.me,scim.read",
       signup_redirect_url: "home"}.update(opts)
@@ -65,11 +67,11 @@ module SpecHelper
     Cli.run("target #{@target}").should be
     Cli.run("token client get #{@admin_client} -s #{@admin_secret}")
     Config.yaml.should include("access_token")
-    test_client = "test_client_#{Time.now.to_i}"
     @test_secret = Shellwords.escape("+=tEsTsEcRet~!@--")
     Cli.run("client add #{test_client} -s #{@test_secret} " +
         "--authorities #{opts[:authorities]} " +
         "--scope #{opts[:scope]} " +
+        "--name #{opts[:name]} " +
         "--authorized_grant_types #{opts[:grant_types]} " +
         "--autoapprove #{opts[:autoapprove]} " +
         "--signup_redirect_url #{opts[:signup_redirect_url]}").should be

@@ -22,6 +22,7 @@ class AlreadyExists < RuntimeError; end
 class BadFilter < RuntimeError; end
 class BadVersion < RuntimeError; end
 
+# StubScim is the in-memory database of the stubbed out UAA server.  Although called StubScim it manages ALL of the objects of the server; users, groups, clients, zones, providers, etc
 class StubScim
 
   private
@@ -39,10 +40,13 @@ class StubScim
   GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
       :roles, :x509certificates].to_set
   GENERAL_SUBATTRS = [:value, :display, :primary, :type].to_set
+
+  # represents the schema of the scimuser name and meta attributes
   EXPLICIT_SINGLE = {
       name: [:formatted, :familyname, :givenname, :middlename,
           :honorificprefix, :honorificsuffix].to_set,
       meta: [:created, :lastmodified, :location, :version].to_set }
+
   EXPLICIT_MULTI = {
       addresses: [:formatted, :streetaddress, :locality, :region,
           :postal_code, :country, :primary, :type].to_set,
@@ -127,7 +131,8 @@ class StubScim
         when *GROUPS then valid_ids?(v, :group)
         when *MEMBERSHIP then valid_ids?(v)
         when ENUMS[k] then ENUMS[k].include?(v)
-        when *EXPLICIT_SINGLE.keys then valid_complex?(v, EXPLICIT_SINGLE[k])
+        # not applicable to client objects (only scimuser objects have complex 'name' or 'meta' attributes)
+        when *EXPLICIT_SINGLE.keys && rtype.equal?(:client) then valid_complex?(v, EXPLICIT_SINGLE[k])
         when *EXPLICIT_MULTI.keys then valid_multi?(v, EXPLICIT_MULTI[k])
         else k.is_a?(String) || k.is_a?(Symbol)
       end

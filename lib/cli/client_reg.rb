@@ -64,13 +64,12 @@ class ClientCli < CommonCli
 
   define_option :clone, "--clone <other>", "get default settings from other"
   define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
-
   desc "client add [id]", "Add client registration",
       *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |id|
     pp scim_request { |cr|
       opts[:client_id] = clientid(id)
-      opts[:secret] = verified_pwd("New client secret", opts[:secret])
       opts[:name] = clientname()
+      opts[:secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
       cr.add(:client, client_info(defaults))
