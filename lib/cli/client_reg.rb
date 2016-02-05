@@ -68,7 +68,7 @@ class ClientCli < CommonCli
       *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |id|
     pp scim_request { |cr|
       opts[:client_id] = clientid(id)
-      opts[:name] = clientname()
+      opts[:name] = clientname() || opts[:client_id]
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)

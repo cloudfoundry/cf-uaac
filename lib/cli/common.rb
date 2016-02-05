@@ -33,7 +33,7 @@ class CommonCli < Topic
   def userpwd(pwd = opts[:password]); pwd || ask_pwd("Password") end
   def clientid(id = opts[:client]); id || ask("Client ID") end
   def clientsecret(secret = opts[:secret]); secret || ask_pwd("Client secret") end
-  def clientname(name = opts[:name]); name || ask("Client name") end
+  def clientname(name = opts[:name]); name end
 
   def verified_pwd(prompt, pwd = nil)
     while pwd.nil?
