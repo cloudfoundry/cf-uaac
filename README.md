@@ -20,7 +20,7 @@ gem install cf-uaac*.gem
 
 ## Concepts
 
-The user uses a client (like a webapp, or uaac) to do things. The client and the user have different secrets; the user's secret is a password, and the client's secret is a hex string.
+The user uses a client (like a webapp, or uaac) to do things. The client and the user have different secrets; both the user's and client's secret are passwords.
 
 
 ## Connecting and logging in
