@@ -137,6 +137,15 @@ class TokenCli < CommonCli
     say_success "owner password" if set_context(reply)
   end
 
+  define_option :passcode, "--passcode <passcode>"
+  desc "token passcode get [client]", "Gets a token with a resource owner passcode",
+       :secret,:passcode,:scope do |client|
+    reply = issuer_request(clientid(client), clientsecret) { |ti|
+      ti.passcode_grant(passcode, opts[:scope]).info
+    }
+    say_success "owner passcode" if set_context(reply)
+  end
+
   desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", :client, :secret, :scope do |rtok|
     rtok ||= Config.value(:refresh_token)
     reply = issuer_request(clientid, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }

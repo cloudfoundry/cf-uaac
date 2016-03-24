@@ -31,6 +31,7 @@ class CommonCli < Topic
 
   def username(name); name || ask("User name") end
   def userpwd(pwd = opts[:password]); pwd || ask_pwd("Password") end
+  def passcode(passcode = opts[:passcode]); passcode || ask("Passcode (from #{Config.target}/passcode)") end
   def clientid(id = opts[:client]); id || ask("Client ID") end
   def clientsecret(secret = opts[:secret]); secret || ask_pwd("Client secret") end
   def clientname(name = opts[:name]); name end

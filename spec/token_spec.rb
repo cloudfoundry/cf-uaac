@@ -26,7 +26,8 @@ describe TokenCli do
     setup_target(authorities: "clients.read,scim.read,scim.write,uaa.resource")
     Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
     Config.yaml.should include("access_token")
-    @test_pwd = Shellwords.escape("@~`!$@%#%^$^&*)(|}{[]\":';?><,./")
+    @test_pwd_unescaped = "@~`!$@%#%^$^&*)(|}{[]\":';?><,./"
+    @test_pwd = Shellwords.escape(@test_pwd_unescaped)
     @test_user = "test_user_#{Time.now.to_i}"
     Cli.run("user add #{@test_user} -p #{@test_pwd} " +
         "--emails sam@example.com,joNES@sample.com --given_name SamueL " +
@@ -104,6 +105,13 @@ describe TokenCli do
 
   it "logs in with owner password grant" do
     Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user} -p #{@test_pwd}" ).should be
+    Cli.output.string.should include "Successfully fetched token"
+  end
+
+  it "logs in with owner passcode grant" do
+    fakePasscode = Base64::urlsafe_encode64("#{@test_user} #{@test_pwd_unescaped}")
+    cli_run = Cli.run("token passcode get #{@test_client} -s #{@test_secret} --passcode #{fakePasscode}")
+    cli_run.should be
     Cli.output.string.should include "Successfully fetched token"
   end
 

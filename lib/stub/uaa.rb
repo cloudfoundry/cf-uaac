@@ -305,12 +305,21 @@ class StubUAAConn < Stub::Base
       user = server.scim.get(user, :user, :id, :emails, :username)
       reply.json(token_reply_info(client, scope, user, nil, true))
     when "password"
-      return if bad_params?(params, ['username', 'password'], ['scope'])
-      user = find_user(params['username'], params['password'])
+      notPassword = bad_params?(params, ['username', 'password'], ['scope'])
+      notPasscode = bad_params?(params, ['passcode'], ['scope'])
+      return if notPasscode && notPassword
+      unless notPassword
+        username = params['username']
+        password = params['password']
+      end
+      unless notPasscode
+        username, password = Base64::urlsafe_decode64(params['passcode']).split
+      end
+      user = find_user(username, password)
       return reply.json(400, error: "invalid_grant") unless user
       scope = calc_scope(client, user, params['scope'])
       return reply.json(400, error: "invalid_scope") unless scope
-      reply.json(token_reply_info(client, scope, user))
+      reply.json(200, token_reply_info(client, scope, user))
     when "client_credentials"
       return if bad_params?(params, [], ['scope'])
       scope = calc_scope(client, nil, params['scope'])
