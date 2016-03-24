@@ -138,7 +138,7 @@ class TokenCli < CommonCli
   end
 
   define_option :passcode, "--passcode <passcode>"
-  desc "token passcode get [client]", "Gets a token with a resource owner passcode",
+  desc "token sso get [client]", "Gets a token based on a one time passcode after successful SSO via browser",
        :secret,:passcode,:scope do |client|
     reply = issuer_request(clientid(client), clientsecret) { |ti|
       ti.passcode_grant(passcode, opts[:scope]).info
