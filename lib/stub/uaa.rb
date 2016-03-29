@@ -443,8 +443,9 @@ class StubUAAConn < Stub::Base
     external_group = json["externalgroup"]
     group_name = json["displayname"]
     group_id = json["groupid"]
-    group = server.scim.add_group_mapping(external_group, group_id, group_name)
-    reply_in_kind(displayName: group[:displayname], externalGroup: external_group, groupId: group[:id])
+    origin = json["origin"]
+    group = server.scim.add_group_mapping(external_group, group_id, group_name, origin)
+    reply_in_kind(displayName: group[:displayname], externalGroup: external_group, groupId: group[:id], origin: origin)
   end
 
   route :get, %r{^/Groups/External/list(\?|$)(.*)} do
@@ -464,13 +465,14 @@ class StubUAAConn < Stub::Base
     reply_in_kind(resources: paginated_group_mappings, itemsPerPage: count, startIndex: start_index, totalResults: group_mappings.length)
   end
 
-  route :delete, %r{^/Groups/External/id/([^/]+)/([^/]+)$} do
+  route :delete, %r{^/Groups/External/groupId/([^/]+)/externalGroup/([^/]+)/origin/([^/]+)$} do
     return unless valid_token("scim.write")
 
     group_id = match[1]
     external_group = match[2]
+    origin = match[3]
     begin
-      server.scim.delete_group_mapping(group_id, external_group)
+      server.scim.delete_group_mapping(group_id, external_group, origin)
     rescue NotFound
       not_found("Mapping for group ID #{match[1]} and external group #{match[2]}")
     end
