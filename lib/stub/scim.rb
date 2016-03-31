@@ -284,25 +284,26 @@ class StubScim
     [objs, total]
   end
 
-  def add_group_mapping(external_group, group_id, group_name)
+  def add_group_mapping(external_group, group_id, group_name, origin)
     group = group_id ? ref_by_id(group_id, :group) : ref_by_name(group_name, :group)
     return unless group
-    (group[:external_groups] ||= Set.new) << external_group
+    (group[:external_groups] ||= Hash.new)
+    group[:external_groups][external_group] = 'ldap'
     group
   end
 
-  def delete_group_mapping(group_id, external_group)
+  def delete_group_mapping(group_id, external_group, origin)
     raise NotFound unless group = ref_by_id(group_id, :group)
     raise NotFound unless group[:external_groups] && group[:external_groups].include?(external_group)
-    group[:external_groups].delete(external_group)
+    group[:external_groups][external_group].delete(origin)
   end
 
   def get_group_mappings
     group_mappings = []
     @things_by_id.each do |id, thing|
       if thing[:rtype] == :group
-        thing[:external_groups].each do |external_group|
-          group_mappings << { groupid: thing[:id], displayname: thing[:displayname], externalgroup: external_group }
+        thing[:external_groups].each do |key, value|
+          group_mappings << { groupid: thing[:id], displayname: thing[:displayname], externalgroup: key }
         end if thing[:external_groups]
       end
     end unless @things_by_id.empty?

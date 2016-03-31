@@ -230,7 +230,10 @@ describe GroupCli do
     Cli.output.string.should include "Please provide an external group"
 
     Cli.run "group map ldap-id --name #{@test_group}"
-    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id for origin ldap"
+
+    Cli.run "group map ldap-id --name #{@test_group} --origin ldap2"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id for origin ldap2"
 
     Cli.run("group get #{@test_group}")
     test_group_id = Cli.output.string.match(/id: ([\S]+)/)[1]
@@ -242,7 +245,10 @@ describe GroupCli do
     Cli.run "context #{@test_client}"
 
     Cli.run "group map ldap-id --name #{@test_group}"
-    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id for origin ldap"
+
+    Cli.run "group map ldap-id --name #{@test_group} --origin ldap2"
+    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id for origin ldap2"
 
     Cli.run("group get #{@test_group}")
 
@@ -253,10 +259,13 @@ describe GroupCli do
     Cli.output.string.should include "Please provide a group name and external group"
 
     Cli.run "group unmap #{@test_group} ldap-id"
-    Cli.output.string.should include "Successfully unmapped ldap-id from #{@test_group}"
+    Cli.output.string.should include "Successfully unmapped ldap-id from #{@test_group} for origin ldap"
 
     Cli.run "group unmap nonexistent_group unmapped_ldap-id"
     Cli.output.string.should include "Group nonexistent_group not found"
+
+    Cli.run "group unmap #{@test_group} ldap-id --origin ldap2"
+    Cli.output.string.should include "Successfully unmapped ldap-id from #{@test_group} for origin ldap2"
 
     Cli.run "group unmap #{@test_group} unmapped_ldap-id"
     Cli.output.string.should include "NotFound"

@@ -63,23 +63,26 @@ class GroupCli < CommonCli
 
   define_option :id, "--id <id>", "map uaa group using group id"
   define_option :name, "--name <name>", "map uaa scope using group name"
-  desc "group map [external_group]", "Map uaa groups to external groups", :id, :name do |external_group|
+  define_option :origin, "--origin <origin>", "map uaa scope to external group for this origin. Defaults to ldap."
+  desc "group map [external_group]", "Map uaa groups to external groups", :id, :name, :origin do |external_group|
     return gripe "Please provide a group name or id" unless opts[:id] || opts[:name]
     return gripe "Please provide an external group" unless external_group
 
     group = opts[:id] ? opts[:id] : opts[:name]
     is_id = opts[:id] ? true : false
+    origin = opts[:origin] ? opts[:origin] : 'ldap'
     pp scim_request { |ua|
-      response = ua.map_group(group, is_id, external_group)
+      response = ua.map_group(group, is_id, external_group, origin)
       raise BadResponse, "no  group id found in response of external group mapping" unless response["groupid"]
-      "Successfully mapped #{response["displayname"]} to #{external_group}"
+      "Successfully mapped #{response["displayname"]} to #{external_group} for origin #{origin}"
     }
   end
 
-  desc "group unmap [group_name] [external_group]", "Unmaps an external group from a uaa group" do |group_name, external_group|
+  desc "group unmap [group_name] [external_group]", "Unmaps an external group from a uaa group", :origin do |group_name, external_group|
     return gripe "Please provide a group name and external group" unless group_name && external_group
 
-    group_id = nil
+    origin = opts[:origin] ? opts[:origin] : 'ldap'
+
     response = Cli.run("group get #{group_name}")
     if response
       group_id = response['id']
@@ -87,9 +90,10 @@ class GroupCli < CommonCli
       return gripe "Group #{group_name} not found"
     end
 
+
     pp scim_request { |ua|
-      ua.unmap_group(group_id, external_group)
-      "Successfully unmapped #{external_group} from #{group_name}"
+      ua.unmap_group(group_id, external_group, origin)
+      "Successfully unmapped #{external_group} from #{group_name} for origin #{origin}"
     }
   end
 
