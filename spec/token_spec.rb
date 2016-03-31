@@ -108,9 +108,9 @@ describe TokenCli do
     Cli.output.string.should include "Successfully fetched token"
   end
 
-  it "logs in with owner passcode grant" do
+  it "logs in with sso passcode grant" do
     fakePasscode = Base64::urlsafe_encode64("#{@test_user} #{@test_pwd_unescaped}")
-    cli_run = Cli.run("token passcode get #{@test_client} -s #{@test_secret} --passcode #{fakePasscode}")
+    cli_run = Cli.run("token sso get #{@test_client} -s #{@test_secret} --passcode #{fakePasscode}")
     cli_run.should be
     Cli.output.string.should include "Successfully fetched token"
   end
