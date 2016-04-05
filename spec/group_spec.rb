@@ -171,11 +171,11 @@ describe GroupCli do
 
   it "lists all the mappings between uaa scopes and external groups" do
     Cli.run "context #{@test_client}"
-    Cli.run "group map ldap-id --name #{@test_group}"
-    Cli.output.string.should include "Successfully mapped #{@test_group} to ldap-id"
+    Cli.run "group map ldap-id --name #{@test_group} --origin saml"
+    Cli.run "group map ldap-id1 --name #{@test_group} --origin saml"
 
     Cli.run "group mappings"
-    Cli.output.string.should include("#{@test_group}: ldap-id")
+    Cli.output.string.should include("saml: \n    -\n      #{@test_group}: ldap-id\n    -\n      #{@test_group}: ldap-id1")
   end
 
   it "lists mappings between uaa scopes and external groups with pagination" do

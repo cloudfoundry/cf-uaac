@@ -52,9 +52,10 @@ class GroupCli < CommonCli
     response = scim_request { |scim| scim.list_group_mappings(start, count) }
 
     if response
-      grouped_group_mappings = []
+      grouped_group_mappings = {}
       response["resources"].each do |resource|
-        grouped_group_mappings << {resource['displayname'] => resource['externalgroup']}
+        grouped_group_mappings[resource['origin']] ||= Array.new
+        grouped_group_mappings[resource['origin']] << {resource['displayname'] => resource['externalgroup']}
       end
       response["resources"] = grouped_group_mappings
       pp response

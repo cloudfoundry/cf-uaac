@@ -288,7 +288,7 @@ class StubScim
     group = group_id ? ref_by_id(group_id, :group) : ref_by_name(group_name, :group)
     return unless group
     (group[:external_groups] ||= Hash.new)
-    group[:external_groups][external_group] = 'ldap'
+    group[:external_groups][external_group] = origin
     group
   end
 
@@ -303,7 +303,7 @@ class StubScim
     @things_by_id.each do |id, thing|
       if thing[:rtype] == :group
         thing[:external_groups].each do |key, value|
-          group_mappings << { groupid: thing[:id], displayname: thing[:displayname], externalgroup: key }
+          group_mappings << { groupid: thing[:id], displayname: thing[:displayname], externalgroup: key, origin: value }
         end if thing[:external_groups]
       end
     end unless @things_by_id.empty?
