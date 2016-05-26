@@ -11,8 +11,8 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'cli/base'
-require 'cli/config'
+require 'uaa/cli/base'
+require 'uaa/cli/config'
 require 'uaa'
 
 module CF::UAA

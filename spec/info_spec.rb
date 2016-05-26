@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaac_cli'
-require 'stub/uaa'
+require 'uaa/stub/uaa'
 
 module CF::UAA
 

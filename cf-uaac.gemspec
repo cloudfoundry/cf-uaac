@@ -13,7 +13,7 @@
 #++
 
 $:.push File.expand_path("../lib", __FILE__)
-require "cli/version"
+require "uaa/cli/version"
 
 Gem::Specification.new do |s|
   s.name        = "cf-uaac"

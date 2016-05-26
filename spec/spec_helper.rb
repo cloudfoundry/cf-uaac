@@ -24,7 +24,7 @@ end
 
 require 'rspec'
 require 'eventmachine'
-require 'stub/uaa'
+require 'uaa/stub/uaa'
 
 module CF::UAA
 
