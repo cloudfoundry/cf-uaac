@@ -11,7 +11,7 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'cli/common'
+require 'uaa/cli/common'
 require 'rack'
 require 'net/http'
 require 'uaa/http'

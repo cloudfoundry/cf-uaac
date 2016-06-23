@@ -16,8 +16,8 @@ require 'fiber'
 require 'net/http'
 require 'em-http'
 require 'uaa/http'
-require 'cli/version'
-require 'stub/server'
+require 'uaa/cli/version'
+require 'uaa/stub/server'
 
 module CF::UAA
 

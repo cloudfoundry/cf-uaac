@@ -12,7 +12,7 @@
 #++
 
 require 'set'
-require 'cli/common'
+require 'uaa/cli/common'
 require 'uaa'
 
 module CF::UAA

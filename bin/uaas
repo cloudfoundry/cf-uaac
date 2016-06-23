@@ -14,9 +14,9 @@
 #++
 
 $:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
-require 'stub/uaa'
-require 'cli/base'
-require 'cli/version'
+require 'uaa/stub/uaa'
+require 'uaa/cli/base'
+require 'uaa/cli/version'
 
 module CF::UAA
 

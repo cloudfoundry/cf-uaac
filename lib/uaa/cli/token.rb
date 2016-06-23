@@ -11,10 +11,10 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'cli/common'
+require 'uaa/cli/common'
 require 'launchy'
 require 'uaa'
-require 'stub/server'
+require 'uaa/stub/server'
 
 module CF::UAA
 

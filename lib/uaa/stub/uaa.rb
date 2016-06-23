@@ -12,9 +12,9 @@
 #++
 
 require 'uaa'
-require 'stub/server'
-require 'stub/scim'
-require 'cli/version'
+require 'uaa/stub/server'
+require 'uaa/stub/scim'
+require 'uaa/cli/version'
 require 'pp'
 
 module CF::UAA

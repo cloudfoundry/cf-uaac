@@ -11,13 +11,13 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'cli/common'
-require 'cli/token'
-require 'cli/user'
-require 'cli/group'
-require 'cli/info'
-require 'cli/client_reg'
-require 'cli/curl'
+require 'uaa/cli/common'
+require 'uaa/cli/token'
+require 'uaa/cli/user'
+require 'uaa/cli/group'
+require 'uaa/cli/info'
+require 'uaa/cli/client_reg'
+require 'uaa/cli/curl'
 
 module CF::UAA
 
