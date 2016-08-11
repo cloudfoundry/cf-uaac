@@ -517,6 +517,10 @@ class StubUAAConn < Stub::Base
     reply_in_kind(obj)
   end
 
+  route :patch, %r{^/Users/([^/]+)/status$} do
+    reply_in_kind('"locked":false')
+  end
+
   route :delete, %r{^/(Users|Groups)/([^/]+)$} do
     return unless valid_token("scim.write")
     not_found(match[2]) unless server.scim.delete(match[2], match[1] == "Users"? :user : :group)

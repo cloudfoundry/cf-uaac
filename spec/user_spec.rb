@@ -61,6 +61,15 @@ describe UserCli do
     Cli.output.string.should =~ /#{@test_user}/
   end
 
+  it "unlocks a user" do
+    Cli.run("user add user-1 -p password-1 " +
+                "--emails user-1@example.com --given_name user1 " +
+                "--phones 801-555-2431 --family_name jonES")
+    Cli.run("user unlock user-1")
+    Cli.output.string.should include "success"
+    Cli.run("user delete user-1")
+  end
+
   describe "get list of users" do
     before :all do
       i = 1

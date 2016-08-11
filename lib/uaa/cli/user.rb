@@ -82,6 +82,13 @@ class UserCli < CommonCli
     }
   end
 
+  desc "user unlock [name]", "Unlocks the user account" do |name|
+    pp scim_request { |ua|
+      ua.unlock_user( ua.id(:user, username(name)))
+      "user account successfully unlocked"
+    }
+  end
+
   desc "password set [name]", "Set password", :password do |name|
     pp scim_request { |ua|
       ua.change_password(ua.id(:user, username(name)), verified_pwd("New password", opts[:password]))
