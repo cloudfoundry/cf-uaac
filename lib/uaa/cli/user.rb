@@ -17,12 +17,12 @@ module CF::UAA
 
 class UserCli < CommonCli
 
-  topic "User Accounts", "account"
+  topic 'User Accounts', 'account'
 
-  define_option :givenName, "--given_name <name>"
-  define_option :familyName, "--family_name <name>"
-  define_option :emails, "--emails <addresses>"
-  define_option :phoneNumbers, "--phones <phone_numbers>"
+  define_option :givenName, '--given_name <name>'
+  define_option :familyName, '--family_name <name>'
+  define_option :emails, '--emails <addresses>'
+  define_option :phoneNumbers, '--phones <phone_numbers>'
   USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers]
 
   def user_opts(info = {})
@@ -35,57 +35,57 @@ class UserCli < CommonCli
     info
   end
 
-  define_option :attrs, "-a", "--attributes <names>", "output for each user"
-  define_option :start, "--start <number>", "start of output page"
-  define_option :count, "--count <number>", "max number per page"
-  desc "users [filter]", "List user accounts", :attrs, :start, :count do |filter|
+  define_option :attrs, '-a', '--attributes <names>', 'output for each user'
+  define_option :start, '--start <number>', 'start of output page'
+  define_option :count, '--count <number>', 'max number per page'
+  desc 'users [filter]', 'List user accounts', :attrs, :start, :count do |filter|
     scim_common_list(:user, filter)
   end
 
-  desc "user get [name]", "Get specific user account", :attrs do |name|
+  desc 'user get [name]', 'Get specific user account', :attrs do |name|
     pp scim_request { |sr| scim_get_object(sr, :user, username(name), opts[:attrs]) }
   end
 
-  desc "user add [name]", "Add a user account", *USER_INFO_OPTS, :password do |name|
-    info = {userName: username(name), password: verified_pwd("Password", opts[:password])}
+  desc 'user add [name]', 'Add a user account', *USER_INFO_OPTS, :password do |name|
+    info = {userName: username(name), password: verified_pwd('Password', opts[:password])}
     pp scim_request { |ua|
       ua.add(:user, user_opts(info))
-      "user account successfully added"
+      'user account successfully added'
     }
   end
 
-  define_option :del_attrs, "--del_attrs <attr_names>", "list of attributes to delete"
-  desc "user update [name]", "Update a user account with specified options",
+  define_option :del_attrs, '--del_attrs <attr_names>', 'list of attributes to delete'
+  desc 'user update [name]', 'Update a user account with specified options',
       *USER_INFO_OPTS, :del_attrs do |name|
-    return say "no user updates specified" if (updates = user_opts).empty?
+    return say 'no user updates specified' if (updates = user_opts).empty?
     pp scim_request { |ua|
       info = ua.get(:user, ua.id(:user, username(name)))
       opts[:del_attrs].each { |a| info.delete(a.to_s) } if opts[:del_attrs]
       ua.put(:user, info.merge(updates))
-      "user account successfully updated"
+      'user account successfully updated'
     }
   end
 
-  desc "user delete [name]", "Delete user account" do |name|
+  desc 'user delete [name]', 'Delete user account' do |name|
     pp scim_request { |ua|
       ua.delete(:user, ua.id(:user, username(name)))
-      "user account successfully deleted"
+      'user account successfully deleted'
     }
   end
 
-  desc "user ids [username|id...]", "Gets user names and ids for the given users" do |*users|
+  desc 'user ids [username|id...]', 'Gets user names and ids for the given users' do |*users|
     pp scim_request { |ua|
-      users = Util.arglist(ask("names or ids of users")) if !users || users.empty?
+      users = Util.arglist(ask('names or ids of users')) if !users || users.empty?
       ids = ua.ids(:user_id, *users)
-      raise NotFound, "no users found" unless ids && ids.length > 0
+      raise NotFound, 'no users found' unless ids && ids.length > 0
       ids
     }
   end
 
-  desc "user unlock [name]", "Unlocks the user account" do |name|
+  desc 'user unlock [name]', 'Unlocks the user account' do |name|
     pp scim_request { |ua|
       ua.unlock_user( ua.id(:user, username(name)))
-      "user account successfully unlocked"
+      'user account successfully unlocked'
     }
   end
 
@@ -96,13 +96,13 @@ class UserCli < CommonCli
     }
   end
 
-  define_option :old_password, "-o", "--old_password <password>", "current password"
-  desc "password change", "Change password for authenticated user in current context", :old_password, :password do
+  define_option :old_password, '-o', '--old_password <password>', 'current password'
+  desc 'password change', 'Change password for authenticated user in current context', :old_password, :password do
     pp scim_request { |ua|
-      raise "no user_id in current context" unless Config.value(:user_id)
-      oldpwd = opts[:old_password] || ask_pwd("Current password")
-      ua.change_password(Config.value(:user_id), verified_pwd("New password", opts[:password]), oldpwd)
-      "password successfully changed"
+      raise 'no user_id in current context' unless Config.value(:user_id)
+      oldpwd = opts[:old_password] || ask_pwd('Current password')
+      ua.change_password(Config.value(:user_id), verified_pwd('New password', opts[:password]), oldpwd)
+      'password successfully changed'
     }
   end
 

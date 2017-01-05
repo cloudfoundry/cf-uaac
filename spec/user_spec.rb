@@ -22,15 +22,15 @@ describe UserCli do
 
   before :all do
     #Util.default_logger(:trace)
-    Cli.configure("", nil, StringIO.new, true)
-    setup_target(authorities: "clients.read,scim.read,scim.write")
+    Cli.configure('', nil, StringIO.new, true)
+    setup_target(authorities: 'clients.read,scim.read,scim.write')
     Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
-    Config.yaml.should include("access_token")
-    @test_pwd = "TesTpwd$%^"
+    Config.yaml.should include('access_token')
+    @test_pwd = 'TesTpwd$%^'
     @test_user = "tEst_UseR_#{Time.now.to_i}"
     Cli.run("user add #{@test_user} -p #{@test_pwd} " +
-        "--emails sam@example.com,joNES@sample.com --given_name SamueL " +
-        "--phones 801-555-1212 --family_name jonES").should be
+      '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
+      '--phones 801-555-1212 --family_name jonES').should be
   end
 
   after :all do
@@ -38,12 +38,12 @@ describe UserCli do
     cleanup_target
   end
 
-  it "creates a user" do
-    Cli.output.string.should include "success"
+  it 'creates a user' do
+    Cli.output.string.should include 'success'
   end
 
   it "fails to change a user's password with the wrong old pwd" do
-    Cli.run("password change -p newpwd --old_password not-the-password").should be_nil
+    Cli.run('password change -p newpwd --old_password not-the-password').should be_nil
   end
 
   it "changes a user's password" do
@@ -52,22 +52,22 @@ describe UserCli do
     Cli.run("token get #{@test_user} newpwd").should be
     Cli.run("password change -p #{@test_pwd} -o newpwd").should be
     Cli.run("token get #{@test_user} #{@test_pwd}").should be
-    Cli.output.string.should include "Successfully fetched token"
+    Cli.output.string.should include 'Successfully fetched token'
   end
 
-  it "preserves case in names" do
+  it 'preserves case in names' do
     Cli.run("context #{@test_client}")
     Cli.run("user get #{@test_user.upcase}").should be
     Cli.output.string.should =~ /#{@test_user}/
   end
 
-  it "unlocks a user" do
-    Cli.run("user add user-1 -p password-1 " +
-                "--emails user-1@example.com --given_name user1 " +
-                "--phones 801-555-2431 --family_name jonES")
-    Cli.run("user unlock user-1")
-    Cli.output.string.should include "success"
-    Cli.run("user delete user-1")
+  it 'unlocks a user' do
+    Cli.run('user add user-1 -p password-1 ' +
+      '--emails user-1@example.com --given_name user1 ' +
+      '--phones 801-555-2431 --family_name jonES')
+    Cli.run('user unlock user-1')
+    Cli.output.string.should include 'success'
+    Cli.run('user delete user-1')
   end
 
   describe "get list of users" do
@@ -91,20 +91,20 @@ describe UserCli do
       end
     end
 
-    it "gets users with default pagination" do
-      Cli.run("users")
-      Cli.output.string.should include "user-1"
-      Cli.output.string.should include "user-2"
-      Cli.output.string.should include "user-14"
+    it 'gets users with default pagination' do
+      Cli.run('users')
+      Cli.output.string.should include 'user-1'
+      Cli.output.string.should include 'user-2'
+      Cli.output.string.should include 'user-14'
       # Default page size for stub uaa is 15
-      Cli.output.string.should_not include "user-15"
+      Cli.output.string.should_not include 'user-15'
     end
 
-    it "gets count users with pagination" do
-      Cli.run("users --start 1 --count 3")
-      Cli.output.string.should include "user-1"
-      Cli.output.string.should include "user-2"
-      Cli.output.string.should_not include "user-3"
+    it 'gets count users with pagination' do
+      Cli.run('users --start 1 --count 3')
+      Cli.output.string.should include 'user-1'
+      Cli.output.string.should include 'user-2'
+      Cli.output.string.should_not include 'user-3'
     end
   end
 
