@@ -89,10 +89,25 @@ class UserCli < CommonCli
     }
   end
 
-  desc "password set [name]", "Set password", :password do |name|
+  desc 'user deactivate [name]', 'Deactivates user' do |name|
     pp scim_request { |ua|
-      ua.change_password(ua.id(:user, username(name)), verified_pwd("New password", opts[:password]))
-      "password successfully set"
+      info = ua.get(:user, ua.id(:user, username(name)))
+      required_info = ['id', 'username', 'name', 'emails', 'meta'].inject({}) do |res, required_param|
+        res[required_param] = info[required_param]
+        res
+      end
+
+      required_info['active'] = false
+
+      ua.patch(:user, required_info)
+      'user account successfully deactivated'
+    }
+  end
+
+  desc 'password set [name]', 'Set password', :password do |name|
+    pp scim_request { |ua|
+      ua.change_password(ua.id(:user, username(name)), verified_pwd('New password', opts[:password]))
+      'password successfully set'
     }
   end
 

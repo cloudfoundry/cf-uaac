@@ -521,6 +521,18 @@ class StubUAAConn < Stub::Base
     reply_in_kind('"locked":false')
   end
 
+  route :patch, %r{^/(Users)/([^/]+)$}, "content-type" => %r{application/json} do
+    return unless obj_access?(:user, match[2], :writers)
+    version = request.headers['if-match']
+    version = version.to_i if version.to_i.to_s == version
+    begin
+      id = server.scim.patch(mtch[2], Util.json_parse(request.body, :down), version, :user)
+      reply_in_kind server.scim.get(id, :user, *StubScim::VISIBLE_ATTRS[:user])
+    rescue BadVersion; reply_in_kind(409, error: "invalid object version")
+    rescue NotFound; not_found(match[2])
+    end
+  end
+
   route :delete, %r{^/(Users|Groups)/([^/]+)$} do
     return unless valid_token("scim.write")
     not_found(match[2]) unless server.scim.delete(match[2], match[1] == "Users"? :user : :group)

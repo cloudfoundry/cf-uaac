@@ -163,7 +163,7 @@ class StubScim
   def output(thing, attrs = nil)
     attrs = thing.keys if attrs.nil? || attrs.empty?
     attrs.each_with_object({}) {|a, o|
-      next unless thing[a]
+      next if thing[a].nil?
       case a
       when *MEMBERSHIP
         o[a] = thing[a].each_with_object([]) { |v, a|
@@ -231,6 +231,35 @@ class StubScim
     READ_ONLY_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
     HIDDEN_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
     thing.replace new_thing
+    thing[:meta][:version] += 1
+    thing[:meta][:lastmodified] == Time.now.iso8601
+    id
+  end
+
+  def patch(id, stuff, match_version = nil, match_type = nil)
+    raise NotFound unless thing = ref_by_id(id, match_type)
+    raise BadVersion if match_version && match_version != thing[:meta][:version]
+    enforce_schema(rtype = thing[:rtype], remove_attrs(stuff, READ_ONLY_ATTRS))
+    new_thing = input(stuff)
+    if newname = new_thing[NAME_ATTR[rtype]]
+      oldname = rtype.to_s + thing[NAME_ATTR[rtype]].downcase
+      unless (newname = rtype.to_s + newname.downcase) == oldname
+        raise AlreadyExists if @things_by_name.key?(newname)
+        @things_by_name.delete(oldname)
+        @things_by_name[newname] = thing
+      end
+    end
+    if new_thing[:members] || thing[:members]
+      old_members = thing[:members] || Set.new
+      new_members = new_thing[:members] || Set.new
+      delete_user_groups(id, old_members - new_members)
+      add_user_groups(id, new_members - old_members)
+    end
+    READ_ONLY_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
+    HIDDEN_ATTRS.each { |a| new_thing[a] = thing[a] if thing[a] }
+    new_thing.each do |key, value|
+      thing[key] = value
+    end
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
     id

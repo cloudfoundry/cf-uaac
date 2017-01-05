@@ -70,7 +70,14 @@ describe UserCli do
     Cli.run('user delete user-1')
   end
 
-  describe "get list of users" do
+  it 'deactivates a user' do
+    Cli.run("user deactivate #{@test_user}")
+    Cli.output.string.should include 'user account successfully deactivated'
+    Cli.run("user get #{@test_user}")
+    Cli.output.string.should include 'active: false'
+  end
+
+  describe 'get list of users' do
     before :all do
       i = 1
       count = 15
