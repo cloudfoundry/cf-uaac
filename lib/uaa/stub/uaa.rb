@@ -526,7 +526,7 @@ class StubUAAConn < Stub::Base
     version = request.headers['if-match']
     version = version.to_i if version.to_i.to_s == version
     begin
-      id = server.scim.patch(mtch[2], Util.json_parse(request.body, :down), version, :user)
+      id = server.scim.patch(match[2], Util.json_parse(request.body, :down), version, :user)
       reply_in_kind server.scim.get(id, :user, *StubScim::VISIBLE_ATTRS[:user])
     rescue BadVersion; reply_in_kind(409, error: "invalid object version")
     rescue NotFound; not_found(match[2])

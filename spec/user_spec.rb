@@ -77,6 +77,13 @@ describe UserCli do
     Cli.output.string.should include 'active: false'
   end
 
+  it 'activates a user' do
+    Cli.run("user activate #{@test_user}")
+    Cli.output.string.should include 'user account successfully activated'
+    Cli.run("user get #{@test_user}")
+    Cli.output.string.should include 'active: true'
+  end
+
   describe 'get list of users' do
     before :all do
       i = 1

@@ -91,16 +91,15 @@ class UserCli < CommonCli
 
   desc 'user deactivate [name]', 'Deactivates user' do |name|
     pp scim_request { |ua|
-      info = ua.get(:user, ua.id(:user, username(name)))
-      required_info = ['id', 'username', 'name', 'emails', 'meta'].inject({}) do |res, required_param|
-        res[required_param] = info[required_param]
-        res
-      end
-
-      required_info['active'] = false
-
-      ua.patch(:user, required_info)
+      change_activation(ua, name, false)
       'user account successfully deactivated'
+    }
+  end
+
+  desc 'user activate [name]', 'Activates user' do |name|
+    pp scim_request { |ua|
+      change_activation(ua, name, true)
+      'user account successfully activated'
     }
   end
 
@@ -121,6 +120,17 @@ class UserCli < CommonCli
     }
   end
 
+  def change_activation(ua, name, activate)
+    info = ua.get(:user, ua.id(:user, username(name)))
+
+    required_info = ['id', 'username', 'name', 'emails', 'meta'].inject({}) do |res, required_param|
+      res[required_param] = info[required_param]
+      res
+    end
+
+    required_info['active'] = activate
+    ua.patch(:user, required_info)
+  end
 end
 
 end
