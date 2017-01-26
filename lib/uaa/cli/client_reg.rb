@@ -17,18 +17,18 @@ module CF::UAA
 
 class ClientCli < CommonCli
 
-  topic "Client Application Registrations", "reg"
+  topic 'Client Application Registrations', 'reg'
 
   CLIENT_SCHEMA = {
-      :name => "string",
-      :scope => "list",
-      :authorized_grant_types => "list",
-      :authorities => "list",
-      :access_token_validity => "seconds",
-      :refresh_token_validity => "seconds",
-      :redirect_uri => "list",
-      :autoapprove => "list",
-      :'signup_redirect_url' => "url"
+      :name => 'string',
+      :scope => 'list',
+      :authorized_grant_types => 'list',
+      :authorities => 'list',
+      :access_token_validity => 'seconds',
+      :refresh_token_validity => 'seconds',
+      :redirect_uri => 'list',
+      :autoapprove => 'list',
+      :'signup_redirect_url' => 'url'
   }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
@@ -45,72 +45,88 @@ class ClientCli < CommonCli
         info[k] = opts[:interact] ?
           info[k] = askd("#{k.to_s.gsub('_', ' ')} (#{p})", default): default
       end
-      if k == :autoapprove && (info[k] == "true" || info[k] == "false")
-        info[k] = !!(info[k] == "true")
+      if k == :autoapprove && (info[k] == 'true' || info[k] == 'false')
+        info[k] = !!(info[k] == 'true')
       else
-        info[k] = Util.arglist(info[k]) if p == "list"
+        info[k] = Util.arglist(info[k]) if p == 'list'
         info.delete(k) unless info[k]
       end
     end
   end
 
-  desc "clients [filter]", "List client registrations", :attrs, :start, :count do |filter|
+  desc 'clients [filter]', 'List client registrations', :attrs, :start, :count do |filter|
     scim_common_list(:client, filter)
   end
 
   desc "client get [id]", "Get specific client registration", :attrs do |id|
-    pp scim_request { |sr| scim_get_object(sr, :client, clientid(id), opts[:attrs]) }
+    pp(scim_request do |sr|
+      client = scim_get_object(sr, :client, clientid(id), opts[:attrs])
+      add_meta_fields_to_client(sr, client)
+    end)
   end
 
-  define_option :clone, "--clone <other>", "get default settings from other"
-  define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
-  desc "client add [id]", "Add client registration",
+  define_option :clone, '--clone <other>', 'get default settings from other'
+  define_option :interact, '--[no-]interactive', '-i', 'interactively verify all values'
+  desc 'client add [id]', 'Add client registration',
       *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |id|
     pp scim_request { |cr|
       opts[:client_id] = clientid(id)
       opts[:name] = clientname() || opts[:client_id]
-      opts[:secret] = verified_pwd("New client secret", opts[:secret])
+      opts[:secret] = verified_pwd('New client secret', opts[:secret])
       defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
-      cr.add(:client, client_info(defaults))
+      client = cr.add(:client, client_info(defaults))
+      add_meta_fields_to_client(cr, client)
     }
   end
 
-  desc "client update [id]", "Update client registration", *CLIENT_SCHEMA.keys,
+  desc 'client update [id]', 'Update client registration', *CLIENT_SCHEMA.keys,
       :del_attrs, :interact do |id|
     pp scim_request { |cr|
       opts[:client_id] = clientid(id)
       orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :sym)
       info = client_info(orig)
-      info.any? { |k, v| v != orig[k] } ? cr.put(:client, info) :
-          gripe("Nothing to update. Use -i for interactive update.")
+      info.any? { |k, v| v != orig[k] } ?
+          update_client(cr, info) :
+          gripe('Nothing to update. Use -i for interactive update.')
     }
   end
 
-  desc "client delete [id]", "Delete client registration" do |id|
+  desc 'client delete [id]', 'Delete client registration' do |id|
     pp scim_request { |cr|
       cr.delete(:client, clientid(id))
-      "client registration deleted"
+      'client registration deleted'
     }
   end
 
-  desc "secret set [id]", "Set client secret", :secret do |id|
+  desc 'secret set [id]', 'Set client secret', :secret do |id|
     pp scim_request { |cr|
-      cr.change_secret(clientid(id), verified_pwd("New secret", opts[:secret]))
-      "client secret successfully set"
+      cr.change_secret(clientid(id), verified_pwd('New secret', opts[:secret]))
+      'client secret successfully set'
     }
   end
 
-  define_option :old_secret, "--old_secret <secret>", "current secret"
-  desc "secret change", "Change secret for authenticated client in current context", :old_secret, :secret do
-    return gripe "context not set" unless client_id = Config.context.to_s
+  define_option :old_secret, '--old_secret <secret>', 'current secret'
+  desc 'secret change', 'Change secret for authenticated client in current context', :old_secret, :secret do
+    return gripe 'context not set' unless client_id = Config.context.to_s
     scim_request { |cr|
-      old = opts[:old_secret] || ask_pwd("Current secret")
-      cr.change_secret(client_id, verified_pwd("New secret", opts[:secret]), old)
-      "client secret successfully changed"
+      old = opts[:old_secret] || ask_pwd('Current secret')
+      cr.change_secret(client_id, verified_pwd('New secret', opts[:secret]), old)
+      'client secret successfully changed'
     }
   end
 
+  private
+
+  def update_client(cr, info)
+    client = cr.put(:client, info)
+    add_meta_fields_to_client(cr, client)
+  end
+
+  def add_meta_fields_to_client(cr, client)
+    meta = cr.get_client_meta(client['client_id'])
+    client.merge({:created_by => meta['createdby']})
+  end
 end
 
 end

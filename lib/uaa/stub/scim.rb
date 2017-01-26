@@ -27,6 +27,8 @@ class StubScim
 
   private
 
+  CREATOR = 'Stalin'
+
   # attribute types. Anything not listed is case-ignore string
   HIDDEN_ATTRS = [:rtype, :password, :client_secret].to_set
   READ_ONLY_ATTRS = [:rtype, :id, :meta, :groups].to_set
@@ -192,7 +194,10 @@ class StubScim
 
   public
 
-  def initialize; @things_by_id, @things_by_name = {}, {} end
+  def initialize
+    @things_by_id, @things_by_name, @clients_metadata = {}, {}, {}
+  end
+
   def name(id, rtype = nil) (t = ref_by_id(id, rtype))? t[NAME_ATTR[t[:rtype]]]: nil end
   def id(name, rtype) (t = ref_by_name(name, rtype))? t[:id] : nil end
 
@@ -203,7 +208,10 @@ class StubScim
     raise AlreadyExists if @things_by_name.key?(name = rtype.to_s + name.downcase)
     enforce_schema(rtype, stuff)
     thing = input(stuff).merge!(rtype: rtype, id: (id = SecureRandom.uuid),
-        meta: { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1 })
+        meta: { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1})
+    if rtype == :client
+      @clients_metadata[stuff['client_id']] = {:createdby => CREATOR}
+    end
     add_user_groups(id, thing[:members])
     @things_by_id[id] = @things_by_name[name] = thing
     id
@@ -294,6 +302,10 @@ class StubScim
   def get(id, rtype = nil, *attrs)
     return unless thing = ref_by_id(id, rtype)
     output(thing, attrs)
+  end
+
+  def get_client_meta(client_id)
+    @clients_metadata[client_id]
   end
 
   def get_by_name(name, rtype, *attrs)
