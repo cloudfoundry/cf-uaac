@@ -75,6 +75,7 @@ module SpecHelper
         "--authorized_grant_types #{opts[:grant_types]} " +
         "--autoapprove #{opts[:autoapprove]} " +
         "--signup_redirect_url #{opts[:signup_redirect_url]}").should be
+    Cli.output.string.should include 'created_by'
     opts.each { |k, a| Util.arglist(a).each {|v| Cli.output.string.should include(v) }}
     @test_client = test_client
   end

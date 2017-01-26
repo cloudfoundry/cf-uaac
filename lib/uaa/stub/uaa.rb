@@ -387,6 +387,11 @@ class StubUAAConn < Stub::Base
     reply_in_kind(scim_to_client(client))
   end
 
+  route :get, %r{^/oauth/clients/([^/]+)/meta$} do
+    return unless valid_token('clients.read')
+    reply_in_kind(server.scim.get_client_meta(match[1]))
+  end
+
   route :delete, %r{^/oauth/clients/([^/]+)$} do
     return unless valid_token('clients.write')
     return not_found(match[1]) unless server.scim.delete(server.scim.id(match[1], :client))

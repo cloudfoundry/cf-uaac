@@ -59,7 +59,10 @@ class ClientCli < CommonCli
   end
 
   desc "client get [id]", "Get specific client registration", :attrs do |id|
-    pp scim_request { |sr| scim_get_object(sr, :client, clientid(id), opts[:attrs]) }
+    pp(scim_request do |sr|
+      client = scim_get_object(sr, :client, clientid(id), opts[:attrs])
+      add_meta_fields_to_client(sr, client)
+    end)
   end
 
   define_option :clone, '--clone <other>', 'get default settings from other'
@@ -72,7 +75,8 @@ class ClientCli < CommonCli
       opts[:secret] = verified_pwd('New client secret', opts[:secret])
       defaults = opts[:clone] ? Util.hash_keys!(cr.get(:client, opts[:clone]), :sym) : {}
       defaults.delete(:client_id)
-      cr.add(:client, client_info(defaults))
+      client = cr.add(:client, client_info(defaults))
+      add_meta_fields_to_client(cr, client)
     }
   end
 
@@ -82,8 +86,9 @@ class ClientCli < CommonCli
       opts[:client_id] = clientid(id)
       orig = Util.hash_keys!(cr.get(:client, opts[:client_id]), :sym)
       info = client_info(orig)
-      info.any? { |k, v| v != orig[k] } ? cr.put(:client, info) :
-          gripe("Nothing to update. Use -i for interactive update.")
+      info.any? { |k, v| v != orig[k] } ?
+          update_client(cr, info) :
+          gripe('Nothing to update. Use -i for interactive update.')
     }
   end
 
@@ -111,6 +116,17 @@ class ClientCli < CommonCli
     }
   end
 
+  private
+
+  def update_client(cr, info)
+    client = cr.put(:client, info)
+    add_meta_fields_to_client(cr, client)
+  end
+
+  def add_meta_fields_to_client(cr, client)
+    meta = cr.get_client_meta(client['client_id'])
+    client.merge({:created_by => meta['createdby']})
+  end
 end
 
 end

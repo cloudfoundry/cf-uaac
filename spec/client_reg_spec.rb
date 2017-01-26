@@ -37,11 +37,13 @@ describe ClientCli do
   it 'gets a client registration' do
     Cli.run("client get #{@test_client}").should be
     Cli.output.string.should include @test_client
+    Cli.output.string.should include 'created_by'
   end
 
   it 'lists client registrations' do
     Cli.run('clients').should be
     Cli.output.string.should include @admin_client, @test_client
+    Cli.output.string.should match(/created_by: .* created_by:/)
   end
 
   context 'as test client' do
@@ -84,6 +86,7 @@ describe ClientCli do
         Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
         Cli.run("context #{@admin_client}").should be
         Cli.run("client update #{@test_client} --authorities scim.write,scim.read").should be
+        Cli.output.string.should include 'created_by'
         Cli.run("client get #{@test_client}").should be
         Cli.output.string.should include 'scim.read', 'scim.write'
       end
