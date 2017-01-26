@@ -43,7 +43,6 @@ describe ClientCli do
   it 'lists client registrations' do
     Cli.run('clients').should be
     Cli.output.string.should include @admin_client, @test_client
-    Cli.output.string.should match(/created_by: .* created_by:/)
   end
 
   context 'as test client' do
