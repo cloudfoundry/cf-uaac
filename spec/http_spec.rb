@@ -145,7 +145,7 @@ describe Http do
         if result[0] == :error
           raise BadTarget, "connection failed" unless result[1] && result[1] != ""
           raise BadTarget, "connection refused" if result[1].to_s =~ /ECONNREFUSED/
-          raise BadTarget, "unable to resolve address" if /unable.*server.*address/.match result[1]
+          raise BadTarget, "unable to resolve address" if /unable.*resolve.*address/.match result[1]
           raise HTTPException, result[1]
         end
         [result[0], result[1], Util.hash_keys!(result[2], :dash)]
