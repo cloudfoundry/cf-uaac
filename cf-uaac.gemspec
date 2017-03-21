@@ -33,7 +33,7 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   # dependencies
-  s.add_runtime_dependency 'cf-uaa-lib', '= ' + CF::UAA::CLI_VERSION
+  s.add_runtime_dependency 'cf-uaa-lib', '~> 3.8.0', '>= 3.8.0'
   s.add_development_dependency 'bundler', '~> 1.14.0', '>= 1.14.3'
   s.add_development_dependency 'rake', '~> 10.3', '>= 10.3.1'
   s.add_development_dependency 'rspec', '~> 2.14', '>= 2.14.1'
