@@ -73,7 +73,9 @@ class TokenCli < CommonCli
   def set_context(token_info)
     return gripe "attempt to get token failed\n" unless token_info && token_info["access_token"]
     contents = TokenCoder.decode(token_info["access_token"], verify: false)
-    Config.context = contents["user_name"] || contents["client_id"] || "bad_token"
+    new_context = contents["user_name"] || contents["client_id"] || "bad_token"
+    Config.delete(Config.target, new_context)
+    Config.context = new_context
     did_save = true
     (did_save &= Config.add_opts(user_id: contents["user_id"])) if contents["user_id"]
     (did_save &= Config.add_opts(client_id: contents["client_id"])) if contents["client_id"]
