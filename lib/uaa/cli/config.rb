@@ -97,7 +97,10 @@ class Config
 
   def self.delete(tgt = nil, ctx = nil)
     if tgt && ctx
-      @config[tgt][:contexts].delete(ctx = valid_context(ctx))
+      unless @config[tgt][:contexts].nil?
+        ctx = ctx.downcase.to_sym
+        @config[tgt][:contexts].delete(ctx)
+      end
       @context = nil if tgt == @target && ctx == @context
     elsif tgt
       @config.delete(tgt)

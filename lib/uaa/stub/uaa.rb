@@ -298,45 +298,45 @@ class StubUAAConn < Stub::Base
       return reply.json(400, error: 'unauthorized_client')
     end
     case params.delete('grant_type')
-    when 'authorization_code'
-       # TODO: need authcode store with requested scope, redir_uri must match
-      return if bad_params?(params, ['code', 'redirect_uri'], [])
-      user_id, scope = redeem_auth_code(client[:id], params['redirect_uri'], params['code'])
-      return reply.json(400, error: 'invalid_grant') unless user_id && scope
-      user = server.scim.get(user, :user, :id, :emails, :username)
-      reply.json(token_reply_info(client, scope, user, nil, true))
-    when 'password'
-      notPassword = bad_params?(params, ['username', 'password'], ['scope'])
-      notPasscode = bad_params?(params, ['passcode'], ['scope'])
-      return if notPasscode && notPassword
-      unless notPassword
-        username = params['username']
-        password = params['password']
-      end
-      unless notPasscode
-        username, password = Base64::urlsafe_decode64(params['passcode']).split
-      end
-      user = find_user(username, password)
-      return reply.json(400, error: 'invalid_grant') unless user
-      scope = calc_scope(client, user, params['scope'])
-      return reply.json(400, error: 'invalid_scope') unless scope
-      reply.json(200, token_reply_info(client, scope, user))
-    when 'client_credentials'
-      return if bad_params?(params, [], ['scope'])
-      scope = calc_scope(client, nil, params['scope'])
-      return reply.json(400, error: 'invalid_scope') unless scope
-      reply.json(token_reply_info(client, scope))
-    when 'refresh_token'
-      return if bad_params?(params, ['refresh_token'], ['scope'])
-      return reply.json(400, error: 'invalid_grant') unless params['refresh_token'] == 'universal_refresh_token'
-      # TODO: max scope should come from refresh token, or user from refresh token
-      # this should use calc_scope when we know the user
-      scope = ids_to_names(client[:scope])
-      scope = Util.strlist(Util.arglist(params['scope'], scope) & scope)
-      return reply.json(400, error: 'invalid_scope') if scope.empty?
-      reply.json(token_reply_info(client, scope))
-    else
-      reply.json(400, error: 'unsupported_grant_type')
+      when 'authorization_code'
+         # TODO: need authcode store with requested scope, redir_uri must match
+        return if bad_params?(params, ['code', 'redirect_uri'], [])
+        user_id, scope = redeem_auth_code(client[:id], params['redirect_uri'], params['code'])
+        return reply.json(400, error: 'invalid_grant') unless user_id && scope
+        user = server.scim.get(user, :user, :id, :emails, :username)
+        reply.json(token_reply_info(client, scope, user, nil, true))
+      when 'password'
+        notPassword = bad_params?(params, ['username', 'password'], ['scope'])
+        notPasscode = bad_params?(params, ['passcode'], ['scope'])
+        return if notPasscode && notPassword
+        unless notPassword
+          username = params['username']
+          password = params['password']
+        end
+        unless notPasscode
+          username, password = Base64::urlsafe_decode64(params['passcode']).split
+        end
+        user = find_user(username, password)
+        return reply.json(400, error: 'invalid_grant') unless user
+        scope = calc_scope(client, user, params['scope'])
+        return reply.json(400, error: 'invalid_scope') unless scope
+        reply.json(200, token_reply_info(client, scope, user, nil, true))
+      when 'client_credentials'
+        return if bad_params?(params, [], ['scope'])
+        scope = calc_scope(client, nil, params['scope'])
+        return reply.json(400, error: 'invalid_scope') unless scope
+        reply.json(token_reply_info(client, scope))
+      when 'refresh_token'
+        return if bad_params?(params, ['refresh_token'], ['scope'])
+        return reply.json(400, error: 'invalid_grant') unless params['refresh_token'] == 'universal_refresh_token'
+        # TODO: max scope should come from refresh token, or user from refresh token
+        # this should use calc_scope when we know the user
+        scope = ids_to_names(client[:scope])
+        scope = Util.strlist(Util.arglist(params['scope'], scope) & scope)
+        return reply.json(400, error: 'invalid_scope') if scope.empty?
+        reply.json(token_reply_info(client, scope))
+      else
+        reply.json(400, error: 'unsupported_grant_type')
     end
     inject_error
   end
