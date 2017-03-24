@@ -14,6 +14,6 @@
 # Cloud Foundry namespace
 module CF
   module UAA
-    CLI_VERSION = '3.9.1'
+    CLI_VERSION = '3.10.0'
   end
 end
