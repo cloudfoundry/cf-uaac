@@ -39,7 +39,7 @@ describe InfoCli do
 
   it "gets server info" do
     Cli.run("info").should be
-    Cli.output.string.should match /\d.\d.\d/
+    Cli.output.string.should match /\d.\d+.\d+/
     Cli.output.string.should include "prompts", "commit_id"
   end
 
