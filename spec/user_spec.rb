@@ -48,11 +48,17 @@ describe UserCli do
 
   it 'sets an origin when specified' do
     user_with_origin = "#{@test_user}_with_origin"
-    Cli.run("user add #{user_with_origin} -p #{@test_pwd} " +
-               '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
-               '--phones 801-555-1212 --family_name jonES --origin ldap').should be
+    create_user_by_origin( user_with_origin, 'ldap')
+    Cli.run("user delete #{user_with_origin}")
+  end
+
+  it 'updates origin when specified' do
+    user_with_origin = "#{@test_user}_with_origin"
+    create_user_by_origin( user_with_origin, 'ldap')
+
+    Cli.run("user update #{user_with_origin} --origin newvalue")
     returned_user = Cli.run("user get #{user_with_origin.upcase}")
-    returned_user['origin'].should match 'ldap'
+    returned_user['origin'].should match 'newvalue'
     Cli.run("user delete #{user_with_origin}")
   end
 
@@ -96,6 +102,15 @@ describe UserCli do
     Cli.output.string.should include 'user account successfully activated'
     Cli.run("user get #{@test_user}")
     Cli.output.string.should include 'active: true'
+  end
+
+  def create_user_by_origin(user_name, origin)
+    Cli.run("user add #{user_name} -p #{@test_pwd} " +
+                '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
+                "--phones 801-555-1212 --family_name jonES --origin #{origin}").should be
+    user_name = Cli.run("user get #{user_name.upcase}")
+    user_name['origin'].should match origin
+    user_name
   end
 
   describe 'get list of users' do
