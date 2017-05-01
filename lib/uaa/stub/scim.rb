@@ -60,7 +60,7 @@ class StubScim
   LEGAL_ATTRS = {
       user: [*COMMON_ATTRS, :displayname, :username, :nickname,
         :profileurl, :title, :usertype, :preferredlanguage, :locale,
-        :timezone, :active, :password, :emails, :phonenumbers, :ims, :photos,
+        :timezone, :active, :password, :emails, :phonenumbers, :origin, :ims, :photos,
         :entitlements, :roles, :x509certificates, :name, :addresses,
         :authorizations, :groups].to_set,
       client: [*COMMON_ATTRS, :client_id, :name, :client_secret, :authorities,

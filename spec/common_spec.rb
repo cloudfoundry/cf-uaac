@@ -42,6 +42,16 @@ describe CommonCli do
     end
   end
 
+  it "displays user help with -h has --origin option" do
+    Cli.run("user -h")
+    Cli.output.string.should include("--origin <identity provider origin, defaults to UAA>")
+  end
+
+  it "displays group help with -h has --origin option" do
+    Cli.run("group -h")
+    Cli.output.string.should include("--origin <origin>, map uaa scope to external group for this origin. Defaults to ldap.")
+  end
+
   it "gets commands in bash completion format" do
     Cli.run("help commands").should be
     [/--no-version/, /--version/, /^#{File.basename($0)}/, /help/].each do |s|

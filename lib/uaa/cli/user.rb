@@ -23,7 +23,8 @@ class UserCli < CommonCli
   define_option :familyName, '--family_name <name>'
   define_option :emails, '--emails <addresses>'
   define_option :phoneNumbers, '--phones <phone_numbers>'
-  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers]
+  define_option :origin, '--origin <identity provider origin, defaults to UAA>'
+  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers, :origin]
 
   def user_opts(info = {})
     [:emails, :phoneNumbers].each do |o|
@@ -32,6 +33,7 @@ class UserCli < CommonCli
     end
     n = [:givenName, :familyName].each_with_object({}) { |o, n| n[o] = opts[o] if opts[o] }
     info[:name] = n unless n.empty?
+    info[:origin] = opts[:origin] if opts[:origin]
     info
   end
 

@@ -42,6 +42,20 @@ describe UserCli do
     Cli.output.string.should include 'success'
   end
 
+  it 'does not set a origin (defaults to uaa through api)' do
+    Cli.run("user get #{@test_user.upcase}").should_not include 'origin'
+  end
+
+  it 'sets an origin when specified' do
+    user_with_origin = "#{@test_user}_with_origin"
+    Cli.run("user add #{user_with_origin} -p #{@test_pwd} " +
+               '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
+               '--phones 801-555-1212 --family_name jonES --origin ldap').should be
+    returned_user = Cli.run("user get #{user_with_origin.upcase}")
+    returned_user['origin'].should match 'ldap'
+    Cli.run("user delete #{user_with_origin}")
+  end
+
   it "fails to change a user's password with the wrong old pwd" do
     Cli.run('password change -p newpwd --old_password not-the-password').should be_nil
   end
