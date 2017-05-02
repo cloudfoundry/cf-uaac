@@ -44,8 +44,8 @@ class UserCli < CommonCli
     scim_common_list(:user, filter)
   end
 
-  desc 'user get [name]', 'Get specific user account', :attrs do |name|
-    pp scim_request { |sr| scim_get_object(sr, :user, username(name), opts[:attrs]) }
+  desc 'user get [name]', 'Get specific user account', :origin, :attrs do |name|
+    pp scim_request { |sr| scim_get_user_object(sr, :user, username(name), opts[:origin], opts[:attrs]) }
   end
 
   desc 'user add [name]', 'Add a user account', *USER_INFO_OPTS, :password do |name|
@@ -68,9 +68,10 @@ class UserCli < CommonCli
     }
   end
 
-  desc 'user delete [name]', 'Delete user account' do |name|
+  desc 'user delete [name]', 'Delete user account', :origin do |name|
     pp scim_request { |ua|
-      ua.delete(:user, ua.id(:user, username(name)))
+      user = scim_get_user_object(ua, :user, username(name), opts[:origin])
+      ua.delete(:user, user['id'])
       'user account successfully deleted'
     }
   end

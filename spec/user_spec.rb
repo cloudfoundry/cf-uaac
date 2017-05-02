@@ -29,7 +29,7 @@ describe UserCli do
     @test_pwd = 'TesTpwd$%^'
     @test_user = "tEst_UseR_#{Time.now.to_i}"
     Cli.run("user add #{@test_user} -p #{@test_pwd} " +
-      '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
+      '--emails sam@example.com --given_name SamueL ' +
       '--phones 801-555-1212 --family_name jonES').should be
   end
 
@@ -60,6 +60,27 @@ describe UserCli do
     returned_user = Cli.run("user get #{user_with_origin.upcase}")
     returned_user['origin'].should match 'newvalue'
     Cli.run("user delete #{user_with_origin}")
+  end
+
+  it 'gets user when origin specified' do
+    user_with_diff_origin = "same_username_with_two_origins"
+    create_user_by_origin( user_with_diff_origin, 'ldap')
+    create_user_by_origin( user_with_diff_origin, 'saml')
+
+    returned_user = Cli.run("user get #{user_with_diff_origin.upcase} --origin ldap")
+    returned_user['origin'].should match 'ldap'
+    Cli.run("user delete #{user_with_diff_origin} --origin ldap")
+    Cli.run("user delete #{user_with_diff_origin} --origin saml")
+  end
+
+  it 'deletes user when origin specified' do
+    user_with_diff_origin = "same_username_with_two_origins"
+    create_user_by_origin( user_with_diff_origin, 'ldap')
+    create_user_by_origin( user_with_diff_origin, 'saml')
+
+    Cli.run("user delete #{user_with_diff_origin.upcase} --origin ldap")
+    Cli.output.string.should include 'successfully deleted'
+    Cli.run("user delete #{user_with_diff_origin} --origin saml")
   end
 
   it "fails to change a user's password with the wrong old pwd" do
@@ -105,10 +126,13 @@ describe UserCli do
   end
 
   def create_user_by_origin(user_name, origin)
+  puts "user add #{user_name} -p #{@test_pwd} " +
+           '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
+           "--phones 801-555-1212 --family_name jonES --origin #{origin}"
     Cli.run("user add #{user_name} -p #{@test_pwd} " +
                 '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
                 "--phones 801-555-1212 --family_name jonES --origin #{origin}").should be
-    user_name = Cli.run("user get #{user_name.upcase}")
+    user_name = Cli.run("user get #{user_name.upcase} --origin #{origin}")
     user_name['origin'].should match origin
     user_name
   end

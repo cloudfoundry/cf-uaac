@@ -199,12 +199,16 @@ class StubScim
   end
 
   def name(id, rtype = nil) (t = ref_by_id(id, rtype))? t[NAME_ATTR[t[:rtype]]]: nil end
-  def id(name, rtype) (t = ref_by_name(name, rtype))? t[:id] : nil end
+  def id(name, rtype)
+    name = append_origin_to_username(name, rtype, nil)
+    (t = ref_by_name(name, rtype))? t[:id] : nil
+  end
 
   def add(rtype, stuff)
     unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype].to_s])
       raise SchemaViolation, "new #{rtype} has no name #{NAME_ATTR[rtype]}"
     end
+    name = append_origin_to_username(name, rtype, stuff['origin'])
     raise AlreadyExists if @things_by_name.key?(name = rtype.to_s + name.downcase)
     enforce_schema(rtype, stuff)
     thing = input(stuff).merge!(rtype: rtype, id: (id = SecureRandom.uuid),
@@ -225,9 +229,10 @@ class StubScim
     if newname = new_thing[NAME_ATTR[rtype]]
       oldname = rtype.to_s + thing[NAME_ATTR[rtype]].downcase
       unless (newname = rtype.to_s + newname.downcase) == oldname
-        raise AlreadyExists if @things_by_name.key?(newname)
+        name = append_origin_to_username(newname, rtype, stuff['origin'])
+        raise AlreadyExists if @things_by_name.key?(name)
         @things_by_name.delete(oldname)
-        @things_by_name[newname] = thing
+        @things_by_name[name] = thing
       end
     end
     if new_thing[:members] || thing[:members]
@@ -293,8 +298,10 @@ class StubScim
     return unless thing = ref_by_id(id, rtype)
     rtype = thing[:rtype]
     delete_user_groups(id, thing[:members])
+    origin = @things_by_id[id][:origin]
     @things_by_id.delete(id)
-    thing = @things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase)
+    name = append_origin_to_username(rtype.to_s + thing[NAME_ATTR[rtype]].downcase, rtype, origin)
+    thing = @things_by_name.delete(name)
     delete_references(id)
     remove_attrs(output(thing))
   end
@@ -309,8 +316,17 @@ class StubScim
   end
 
   def get_by_name(name, rtype, *attrs)
+    name = append_origin_to_username(name, rtype, nil)
     return unless thing = ref_by_name(name, rtype)
     output(thing, attrs)
+  end
+
+  def append_origin_to_username(name, rtype, origin)
+    if rtype == :user
+      origin =  origin || 'uaa'
+      name = "#{name}_#{origin}"
+    end
+    name
   end
 
   def find(rtype, opts = {})
