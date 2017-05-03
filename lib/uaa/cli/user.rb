@@ -61,7 +61,7 @@ class UserCli < CommonCli
       *USER_INFO_OPTS, :del_attrs do |name|
     return say 'no user updates specified' if (updates = user_opts).empty?
     pp scim_request { |ua|
-      info = ua.get(:user, ua.id(:user, username(name)))
+      info = scim_get_user_object(ua, :user, username(name), opts[:origin])
       opts[:del_attrs].each { |a| info.delete(a.to_s) } if opts[:del_attrs]
       ua.put(:user, info.merge(updates))
       'user account successfully updated'
