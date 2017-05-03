@@ -81,9 +81,25 @@ describe UserCli do
 
     Cli.run("user get #{user_with_diff_origin.upcase}")
 
+    expect(Cli.output.string).to match 'Select user:'
     expect(Cli.output.string).to match 'ldap'
     Cli.run("user delete #{user_with_diff_origin} --origin ldap")
     Cli.run("user delete #{user_with_diff_origin} --origin saml")
+  end
+
+  it 'deletes user when origin not specified' do
+    Cli.input = StringIO.new("2") # selecting first origin through stdin
+    user_with_diff_origin = "same_username_with_two_origins"
+    create_user_by_origin( user_with_diff_origin, 'ldap')
+    create_user_by_origin( user_with_diff_origin, 'saml')
+
+    Cli.run("user delete #{user_with_diff_origin.upcase}")
+
+    expect(Cli.output.string).to match 'Select user:'
+    expect(Cli.output.string).to match 'successfully deleted'
+    Cli.run("user get #{user_with_diff_origin.upcase} --origin saml")
+    expect(Cli.output.string).to match 'NotFound'
+    Cli.run("user delete #{user_with_diff_origin} --origin ldap")
   end
 
   it 'deletes user when origin specified' do
