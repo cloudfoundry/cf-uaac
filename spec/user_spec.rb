@@ -73,6 +73,19 @@ describe UserCli do
     Cli.run("user delete #{user_with_diff_origin} --origin saml")
   end
 
+  it 'gets user when origin not specified' do
+    Cli.input = StringIO.new("1") # selecting first origin through stdin
+    user_with_diff_origin = "same_username_with_two_origins"
+    create_user_by_origin( user_with_diff_origin, 'ldap')
+    create_user_by_origin( user_with_diff_origin, 'saml')
+
+    Cli.run("user get #{user_with_diff_origin.upcase}")
+
+    expect(Cli.output.string).to match 'ldap'
+    Cli.run("user delete #{user_with_diff_origin} --origin ldap")
+    Cli.run("user delete #{user_with_diff_origin} --origin saml")
+  end
+
   it 'deletes user when origin specified' do
     user_with_diff_origin = "same_username_with_two_origins"
     create_user_by_origin( user_with_diff_origin, 'ldap')
@@ -126,9 +139,6 @@ describe UserCli do
   end
 
   def create_user_by_origin(user_name, origin)
-  puts "user add #{user_name} -p #{@test_pwd} " +
-           '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
-           "--phones 801-555-1212 --family_name jonES --origin #{origin}"
     Cli.run("user add #{user_name} -p #{@test_pwd} " +
                 '--emails sam@example.com,joNES@sample.com --given_name SamueL ' +
                 "--phones 801-555-1212 --family_name jonES --origin #{origin}").should be

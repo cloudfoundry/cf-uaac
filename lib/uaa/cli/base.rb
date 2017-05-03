@@ -229,6 +229,7 @@ end
 class BaseCli
 
   class << self
+    attr_writer :input
     attr_reader :input, :output, :option_defs
     attr_accessor :overview, :topics, :global_options
   end

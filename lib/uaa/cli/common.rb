@@ -106,7 +106,25 @@ class CommonCli < Topic
   def scim_get_user_object(scim, type, name, origin, attrs = nil)
     origin_filter = origin ? " and origin eq \"#{origin}\"" : ''
     query = { attributes: attrs, filter: "#{scim.name_attr(type)} eq \"#{name}\"#{origin_filter}"}
-    scim_get_helper(attrs, query, scim, type)
+    info = scim.all_pages(type, query)
+    raise BadResponse unless info.is_a?(Array)
+    raise NotFound if info.length == 0
+    if info.length >= 2
+      info.each_with_index do |i, idx|
+         puts "#{idx+1}: #{i['username']} from #{i['origin']}"
+      end
+
+      choice = @highline.ask("Select user:  ").to_i
+      if choice > info.length || choice <= 0
+        raise ArgumentError 'bad input, klugscheisser'
+      end
+      info = info[choice - 1]
+    else
+      info = info[0]
+    end
+
+    # when getting whole object, handle case of UAA < 1.3 which did not return meta attr from query
+    attrs || !info["id"] || info["meta"] ? info : scim.get(type, info["id"])
   end
 
   def scim_get_object(scim, type, name, attrs = nil)
