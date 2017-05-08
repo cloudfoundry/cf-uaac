@@ -23,7 +23,8 @@ class UserCli < CommonCli
   define_option :familyName, '--family_name <name>'
   define_option :emails, '--emails <addresses>'
   define_option :phoneNumbers, '--phones <phone_numbers>'
-  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers]
+  define_option :origin, '--origin <identity provider origin, defaults to UAA>'
+  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers, :origin]
 
   def user_opts(info = {})
     [:emails, :phoneNumbers].each do |o|
@@ -32,6 +33,7 @@ class UserCli < CommonCli
     end
     n = [:givenName, :familyName].each_with_object({}) { |o, n| n[o] = opts[o] if opts[o] }
     info[:name] = n unless n.empty?
+    info[:origin] = opts[:origin] if opts[:origin]
     info
   end
 
@@ -42,8 +44,8 @@ class UserCli < CommonCli
     scim_common_list(:user, filter)
   end
 
-  desc 'user get [name]', 'Get specific user account', :attrs do |name|
-    pp scim_request { |sr| scim_get_object(sr, :user, username(name), opts[:attrs]) }
+  desc 'user get [name]', 'Get specific user account', :origin, :attrs do |name|
+    pp scim_request { |sr| scim_get_user_object(sr, :user, username(name), opts[:origin], opts[:attrs]) }
   end
 
   desc 'user add [name]', 'Add a user account', *USER_INFO_OPTS, :password do |name|
@@ -59,16 +61,17 @@ class UserCli < CommonCli
       *USER_INFO_OPTS, :del_attrs do |name|
     return say 'no user updates specified' if (updates = user_opts).empty?
     pp scim_request { |ua|
-      info = ua.get(:user, ua.id(:user, username(name)))
+      info = scim_get_user_object(ua, :user, username(name), opts[:origin])
       opts[:del_attrs].each { |a| info.delete(a.to_s) } if opts[:del_attrs]
       ua.put(:user, info.merge(updates))
       'user account successfully updated'
     }
   end
 
-  desc 'user delete [name]', 'Delete user account' do |name|
+  desc 'user delete [name]', 'Delete user account', :origin do |name|
     pp scim_request { |ua|
-      ua.delete(:user, ua.id(:user, username(name)))
+      user = scim_get_user_object(ua, :user, username(name), opts[:origin])
+      ua.delete(:user, user['id'])
       'user account successfully deleted'
     }
   end

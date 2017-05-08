@@ -148,10 +148,10 @@ class Topic
     }.join(' ')
   end
 
-  def say_cmd_helper(info, suffix = nil)
+  def say_cmd_helper(info, topic, suffix = nil)
     say_definition 2, info[:template], info[:desc]
     info[:options].each do |o|
-      odef, desc = opt_help(o, @cli_class.option_defs[o])
+      odef, desc = opt_help(o, topic.option_defs[o] ? topic.option_defs[o]: @cli_class.option_defs[o])
       say_definition help_col_start, "", desc ? "#{odef}, #{desc}" : odef
     end
     @output.print suffix
@@ -162,7 +162,7 @@ class Topic
     @cli_class.topics.each do |tpc|
       tpc.commands.each do |k, v|
         if args[0..v[:parts].length - 1] == v[:parts]
-          say_cmd_helper(v, "\n")
+          say_cmd_helper(v, tpc, "\n")
           return "help command"
         end
       end
@@ -177,7 +177,7 @@ class Topic
     @cli_class.topics.each do |tpc|
       next if topic && topic != tpc
       @output.print "\n#{tpc.topic}\n"
-      tpc.commands.each { |k, v| say_cmd_helper v }
+      tpc.commands.each { |k, v| say_cmd_helper v, tpc }
     end
     if topic || !@cli_class.global_options
       @output.print("\n")
@@ -229,6 +229,7 @@ end
 class BaseCli
 
   class << self
+    attr_writer :input
     attr_reader :input, :output, :option_defs
     attr_accessor :overview, :topics, :global_options
   end
