@@ -52,6 +52,40 @@ describe UserCli do
     Cli.run("user delete #{user_with_origin}")
   end
 
+  it 'creates user without asking for password when origin is not uaa' do
+    user_with_origin = "#{@test_user}_with_origin_ldap"
+    Cli.run("user add #{user_with_origin} " +
+                '--emails sam@example.com --given_name SamueL ' +
+                "--phones 801-555-1212 --family_name jonES --origin ldap").should be
+
+    expect(Cli.output.string).to match 'user account successfully added'
+
+    Cli.run("user delete #{user_with_origin} --origin ldap")
+    expect(Cli.output.string).to match 'user account successfully deleted'
+  end
+
+  it 'create user prompts for password when origin is set to uaa explicitly' do
+    user_with_origin = "#{@test_user}_with_origin_ldap"
+    Cli.input = StringIO.new("password") # selecting first origin through stdin
+    Cli.run("user add #{user_with_origin} " +
+                '--emails sam@example.com --given_name SamueL ' +
+                "--phones 801-555-1212 --family_name jonES --origin uaa").should be
+
+    expect(Cli.output.string).to match 'Password:'
+    Cli.run("user delete #{user_with_origin}")
+  end
+
+  it 'create user prompts for password when origin is uaa implicitly' do
+    user_with_origin = "#{@test_user}_with_origin_ldap"
+    Cli.input = StringIO.new("password") # selecting first origin through stdin
+    Cli.run("user add #{user_with_origin} " +
+                '--emails sam@example.com --given_name SamueL ' +
+                "--phones 801-555-1212 --family_name jonES").should be
+
+    expect(Cli.output.string).to match 'Password:'
+    Cli.run("user delete #{user_with_origin}")
+  end
+
   it 'updates origin when specified' do
     user_with_origin = "#{@test_user}_with_origin"
     create_user_by_origin( user_with_origin, 'ldap')

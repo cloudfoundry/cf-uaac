@@ -111,7 +111,6 @@ class CommonCli < Topic
     raise NotFound if info.length == 0
     if info.length >= 2
       info.each_with_index do |i, idx|
-         puts "#{idx+1}: #{i['username']} from #{i['origin']}"
       end
 
       choice = @highline.ask("Select user:  ").to_i

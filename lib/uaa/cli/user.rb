@@ -49,7 +49,7 @@ class UserCli < CommonCli
   end
 
   desc 'user add [name]', 'Add a user account', *USER_INFO_OPTS, :password do |name|
-    info = {userName: username(name), password: verified_pwd('Password', opts[:password])}
+    info = {userName: username(name), password: ((opts[:origin] == nil || opts[:origin] =='uaa') ? verified_pwd('Password', opts[:password]): nil)}
     pp scim_request { |ua|
       ua.add(:user, user_opts(info))
       'user account successfully added'
