@@ -2,11 +2,9 @@ language: ruby
 
 before_install:
   - gem update
-  - gem uninstall bundler -v '> 1.14.0'
-  - gem install bundler -v '~> 1.14.0'
+  - gem install bundler
 
 rvm:
-  - 2.2.1
-
-
-
+  - 2.2.7
+  - 2.3.4
+  - 2.4.1
