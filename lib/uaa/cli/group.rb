@@ -117,14 +117,6 @@ class GroupCli < CommonCli
       }
     end
 
-    scim.ids(:group, *members).each do |member|
-      found_members << {
-          'type' => 'GROUP',
-          'value' => member['id'],
-          'origin' => member['zoneid']
-      }
-    end
-
     found_members
   end
 
