@@ -106,30 +106,116 @@ class GroupCli < CommonCli
     }
   end
 
-  def update_members(scim, name, attr, users, add = true)
-      group = scim_get_object(scim, :group, gname(name))
-      old_ids = id_set(group[attr] || [])
-      new_ids = id_set(scim.ids(:user, *users))
-      if add
-        raise "not all users found, none added" unless new_ids.size == users.size
-        group[attr] = (old_ids + new_ids).to_a
-        raise "no new users given" unless group[attr].size > old_ids.size
-      else
-        raise "not all users found, none deleted" unless new_ids.size == users.size
-        group[attr] = (old_ids - new_ids).to_a
-        raise "no existing users to delete" unless group[attr].size < old_ids.size
-        group.delete(attr) if group[attr].empty?
+  def find_members(scim, members)
+    found_members = []
+
+    scim.ids(:user, *members).each do |member|
+      found_members << {
+          'type' => 'USER',
+          'value' => member['id'],
+          'origin' => member['origin']
+      }
+    end
+
+    scim.ids(:group, *members).each do |member|
+      found_members << {
+          'type' => 'GROUP',
+          'value' => member['id'],
+          'origin' => member['zoneid']
+      }
+    end
+
+    found_members
+  end
+
+  def union(old_members, new_members)
+    old_ids = id_set(old_members)
+    all_members = old_members.clone
+
+    new_members.each do |member|
+      unless old_ids.include?(member['value'])
+        all_members << member
       end
-      scim.put(:group, group)
-      "success"
+    end
+
+    all_members
+  end
+
+  def difference(old_members, new_members)
+    new_ids = id_set(new_members)
+
+    old_members.reject do |member|
+      new_ids.include?(member['value'])
+    end
+  end
+
+  def add_members(scim, name, members)
+    group = scim_get_object(scim, :group, gname(name))
+
+    old_members = (group['members'] || [])
+    new_members = find_members(scim, members)
+
+    unless new_members.size == members.size
+      raise 'not all users found, none added'
+    end
+
+    group['members'] = union(old_members, new_members)
+
+    unless group['members'].size > old_members.size
+      raise 'no new users given'
+    end
+
+    scim.put(:group, group)
+    'success'
+  end
+
+  def delete_members(scim, name, members)
+    group = scim_get_object(scim, :group, gname(name))
+
+    old_members = (group['members'] || [])
+    new_members = find_members(scim, members)
+
+    unless new_members.size == members.size
+      raise 'not all users found, none deleted'
+    end
+
+    group['members'] = difference(old_members, new_members)
+
+    unless group['members'].size < old_members.size
+      raise 'no existing users to delete'
+    end
+
+    group.delete('members') if group['members'].empty?
+
+    scim.put(:group, group)
+    'success'
+  end
+
+  def update_members(scim, name, attr, users, add = true)
+    group = scim_get_object(scim, :group, gname(name))
+    old_ids = id_set(group[attr] || [])
+    new_ids = id_set(scim.ids(:user, *users))
+    if add
+      raise 'not all users found, none added' unless new_ids.size == users.size
+      group[attr] = (old_ids + new_ids).to_a
+      raise 'no new users given' unless group[attr].size > old_ids.size
+    else
+      raise 'not all users found, none deleted' unless new_ids.size == users.size
+      group[attr] = (old_ids - new_ids).to_a
+      raise 'no existing users to delete' unless group[attr].size < old_ids.size
+      group.delete(attr) if group[attr].empty?
+    end
+
+    scim.put(:group, group)
+    'success'
   end
 
   desc "member add [name] [users...]", "add members to a group" do |name, *users|
-    pp scim_request { |scim| update_members(scim, name, "members", users) }
+    pp scim_request { |scim| add_members(scim, name, users) }
   end
 
   desc "member delete [name] [users...]", "remove members from a group" do |name, *users|
-    pp scim_request { |scim| update_members(scim, name, "members", users, false) }
+    pp scim_request { |scim| delete_members(scim, name, users) }
   end
 
   desc "group reader add [name] [users...]", "add users who can read the members" do |name, *users|
