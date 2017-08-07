@@ -145,7 +145,9 @@ class GroupCli < CommonCli
     group = scim_get_object(scim, :group, gname(name))
 
     old_members = (group['members'] || [])
-    new_members = find_members(scim, members)
+    new_members = find_members(scim, members).map do |member|
+      member.merge('origin' => 'uaa')
+    end
 
     unless new_members.size == members.size
       raise 'not all users found, none added'
