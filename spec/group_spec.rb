@@ -101,57 +101,6 @@ describe GroupCli do
     check_members
   end
 
-  it "adds one reader to the group" do
-    Cli.run("group reader add #{@test_group} #{@test_user}r").should be
-    Cli.output.string.should include "success"
-  end
-
-  it "adds one writer to the group" do
-    Cli.run("group writer add #{@test_group} #{@test_user}w").should be
-    Cli.output.string.should include "success"
-  end
-
-  it "gets readers and writers in the group" do
-    Cli.run("group get #{@test_group}").should be
-    Cli.output.string.should be
-  end
-
-  it "reads members as a reader" do
-    pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
-
-    Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}r -p #{@test_pwd}").should be
-    Cli.run("group get #{@test_group} -a memBers").should be
-    ids = Cli.output.string.scan(/.*value:\s+([^\s]+)/).flatten
-    @users.size.should == ids.size
-  end
-
-  it "can't write members as a reader" do
-    Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}r -p #{@test_pwd}").should be
-    Cli.run("member add #{@test_group} #{@test_user}z").should_not be
-    Cli.output.string.should include "access_denied"
-  end
-
-  it "adds a member as a writer" do
-    pending "Test not applicable in integration test runs" if ENV["UAA_CLIENT_TARGET"]
-
-    Cli.run "context #{@test_client}"
-    Cli.run("user add #{@test_user}z -p #{@test_pwd} --email sam@example.com").should be
-    @users << "#{@test_user}z"
-    Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}w -p #{@test_pwd}").should be
-    Cli.run("member add #{@test_group} #{@test_user}z").should be
-    Cli.run("group get #{@test_group} -a memBers").should be
-    ids = Cli.output.string.scan(/.*value:\s+([^\s]+)/).flatten
-    @users.size.should == ids.size
-    # check_members
-  end
-
-  it "can't read members as a non-reader" do
-    pending "real uaa still returns members even if user is not in readers list" unless @stub_uaa
-    Cli.run("token owner get #{@test_client} -s #{@test_secret} #{@test_user}m -p #{@test_pwd}").should be
-    Cli.run("group get #{@test_group}").should be_nil
-    Cli.output.string.should include "NotFound"
-  end
-
   it "deletes all members from a group" do
     Cli.run "context #{@test_client}"
     cmd = "member delete #{@test_group.downcase} "
