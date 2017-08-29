@@ -88,11 +88,10 @@ class CommonCli < Topic
   def scim_common_list(type, filter)
     pp scim_request { |sr|
       query = { attributes: opts[:attrs], filter: filter }
-      info = nil
-      if type == :user
-        info = sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count]))
+      info = if type == :user
+        sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count]))
       else
-        info = opts[:start] || opts[:count] ?
+        opts[:start] || opts[:count] ?
                sr.query(type, query.merge!(startIndex: opts[:start], count: opts[:count])):
                sr.all_pages(type, query)
       end
@@ -109,21 +108,24 @@ class CommonCli < Topic
     info = scim.all_pages(type, query)
     raise BadResponse unless info.is_a?(Array)
     raise NotFound if info.length == 0
-    if info.length >= 2
+    chosen_info = if info.length >= 2
+      say 'Select an origin:'
       info.each_with_index do |i, idx|
+        say "#{idx + 1}. #{i['origin']}"
       end
 
       choice = @highline.ask("Select user:  ").to_i
       if choice > info.length || choice <= 0
-        raise ArgumentError 'bad input, klugscheisser'
+        raise ArgumentError.new('bad input')
       end
-      info = info[choice - 1]
+      info[choice - 1]
     else
-      info = info[0]
+      info[0]
     end
 
+
     # when getting whole object, handle case of UAA < 1.3 which did not return meta attr from query
-    attrs || !info["id"] || info["meta"] ? info : scim.get(type, info["id"])
+    attrs || !chosen_info["id"] || chosen_info["meta"] ? chosen_info : scim.get(type, chosen_info["id"])
   end
 
   def scim_get_object(scim, type, name, attrs = nil)
