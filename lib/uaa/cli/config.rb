@@ -46,14 +46,14 @@ class Config
           exit 1
       end
     else # file doesn't exist, make sure we can write it now
-      File.open(@config_file, 'w') { |f| f.write("--- {}\n\n") }
+      self.write_file(@config_file, "--- {}\n\n")
     end
     Util.hash_keys!(@config, :sym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
   end
 
   def self.save
-    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :str), f) } if @config_file
+    self.write_file(@config_file, YAML.dump(Util.hash_keys(@config, :str))) if @config
     true
   end
 
@@ -133,6 +133,11 @@ class Config
   # these are all class methods and so can't really be private, but the
   # methods below here are not intended to be part of the public interface
   private
+
+  def self.write_file(filename, content)
+    File.open(filename, 'w') { |f| f.write content }
+    File.chmod(0600, filename)
+  end
 
   def self.current_subhash(hash)
     return unless hash
