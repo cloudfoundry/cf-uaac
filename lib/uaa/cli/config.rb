@@ -35,6 +35,10 @@ class Config
       @config = config == "" ? {} : YAML.load(config)
       @config_file = nil
     elsif File.exists?(@config_file = config)
+      if File.stat(@config_file).mode.to_s(8)[4..5] != "00"
+        STDERR.puts "", "Warning: #{@config_file} is group- and/or world-accessible.",
+          "Please be aware that it may contain sensible information."
+      end
       if (@config = YAML.load_file(@config_file)) && @config.is_a?(Hash)
         @config.each { |k, v| break @config = nil if k.to_s =~ / / }
       end
@@ -46,14 +50,18 @@ class Config
           exit 1
       end
     else # file doesn't exist, make sure we can write it now
+      orig_mask = File.umask(077)
       File.open(@config_file, 'w') { |f| f.write("--- {}\n\n") }
+      File.umask(orig_mask)
     end
     Util.hash_keys!(@config, :sym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
   end
 
   def self.save
+    orig_mask = File.umask(077)
     File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :str), f) } if @config_file
+    File.umask(orig_mask)
     true
   end
 
