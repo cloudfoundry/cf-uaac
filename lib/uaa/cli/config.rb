@@ -53,7 +53,7 @@ class Config
   end
 
   def self.save
-    self.write_file(@config_file, YAML.dump(Util.hash_keys(@config, :str))) if @config
+    self.write_file(@config_file, YAML.dump(Util.hash_keys(@config, :str))) if @config_file
     true
   end
 
