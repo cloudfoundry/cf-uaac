@@ -19,12 +19,12 @@ class UserCli < CommonCli
 
   topic 'User Accounts', 'account'
 
+  define_option :origin, '--origin <name>, select user to update by identity provider origin. Defaults to UAA'
   define_option :givenName, '--given_name <name>'
   define_option :familyName, '--family_name <name>'
   define_option :emails, '--emails <addresses>'
   define_option :phoneNumbers, '--phones <phone_numbers>'
-  define_option :origin, '--origin <identity provider origin, defaults to UAA>'
-  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers, :origin]
+  USER_INFO_OPTS = [:origin, :givenName, :familyName, :emails, :phoneNumbers]
 
   def user_opts(info = {})
     [:emails, :phoneNumbers].each do |o|
