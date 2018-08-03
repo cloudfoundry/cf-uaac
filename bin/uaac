@@ -15,4 +15,6 @@
 
 $:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
 require 'uaac_cli'
-exit CF::UAA::Cli.configure("#{ENV['HOME']}/.uaac.yml").run ? 0 : 1
+home = ENV['UAAC_HOME']
+home = ENV['HOME'] if home.nil? || home.empty?
+exit CF::UAA::Cli.configure("#{home}/.uaac.yml").run ? 0 : 1
