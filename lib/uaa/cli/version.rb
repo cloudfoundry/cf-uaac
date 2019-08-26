@@ -14,6 +14,7 @@
 # Cloud Foundry namespace
 module CF
   module UAA
-    CLI_VERSION = '4.1.0'
+    version_path = File.join( File.dirname(__FILE__), '../../../version.txt' )
+    CLI_VERSION = File.read(version_path)
   end
 end
