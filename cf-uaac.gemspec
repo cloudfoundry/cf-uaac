@@ -35,7 +35,7 @@ Gem::Specification.new do |s|
   # dependencies
   s.add_runtime_dependency 'cf-uaa-lib', '~> 3.11'
   s.add_development_dependency 'rake', '~> 10.3', '>= 10.3.1'
-  s.add_development_dependency 'rspec', '~> 2.14', '>= 2.14.1'
+  s.add_development_dependency 'rspec', '>= 2.14.1', '~> 3.9'
   s.add_development_dependency 'simplecov', '~> 0.8.2'
   s.add_development_dependency 'simplecov-rcov', '~> 0.2.3'
   s.add_development_dependency 'ci_reporter', '~> 1.9', '>= 1.9.2'
