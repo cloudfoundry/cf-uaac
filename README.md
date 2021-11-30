@@ -3,6 +3,13 @@
 [![Build Status](https://travis-ci.org/cloudfoundry/cf-uaac.svg?branch=master)](https://travis-ci.org/cloudfoundry/cf-uaac)
 [![Gem Version](https://badge.fury.io/rb/cf-uaac.png)](https://rubygems.org/gems/cf-uaac)
 
+## Dependencies
+
+### Ruby
+
+In order to run the `uaac` you need to have Ruby 2.3.1 or later, while
+not being Ruby 3.0.0 or later.
+
 ## Installation
 
 From Rubygems:

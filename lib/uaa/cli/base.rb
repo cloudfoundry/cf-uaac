@@ -22,6 +22,11 @@ module CF::UAA
 class Topic
 
   class << self; attr_reader :synonyms end
+  system_ruby_version = Gem::Version.new(RUBY_VERSION)
+  if system_ruby_version < Gem::Version.new('2.3.1') || system_ruby_version >= Gem::Version.new('3.0.0')
+    puts 'Your ruby version must be more recent than 2.3.1 while being 2.x, please update your ruby version'
+    exit 1
+  end
 
   def self.option_defs ; @option_defs || {} end
   def self.commands; @commands || {} end
