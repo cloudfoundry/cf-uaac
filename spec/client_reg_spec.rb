@@ -59,7 +59,7 @@ describe ClientCli do
 
     it 'does not wrap the output of the access token in the terminal' do
       allow(@output).to receive(:tty?).and_return(true)
-      allow(HighLine::SystemExtensions).to receive(:terminal_size).and_return([80])
+      allow(HighLine::Terminal).to receive(:terminal_size).and_return([80, 40])
       Cli.run('context').should be
       Cli.output.string.should match /access_token: \S+?\s+token_type/m
     end
