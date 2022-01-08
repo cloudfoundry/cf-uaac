@@ -58,8 +58,8 @@ describe ClientCli do
     end
 
     it 'does not wrap the output of the access token in the terminal' do
-      @output.stub(:tty?) { true }
-      HighLine::SystemExtensions.stub(:terminal_size) { [80] }
+      allow(@output).to receive(:tty?).and_return(true)
+      allow(HighLine::SystemExtensions).to receive(:terminal_size).and_return([80])
       Cli.run('context').should be
       Cli.output.string.should match /access_token: \S+?\s+token_type/m
     end
