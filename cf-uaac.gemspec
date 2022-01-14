@@ -33,7 +33,7 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   # dependencies
-  s.add_runtime_dependency 'cf-uaa-lib', '~> 3.14.4'
+  s.add_runtime_dependency 'cf-uaa-lib', '>= 3.14.4'
   s.add_development_dependency 'rake', '>= 10.3.1', '~> 13.0'
   s.add_development_dependency 'rspec', '>= 2.14.1', '~> 3.9'
   s.add_development_dependency 'simplecov', '~> 0.21.2'
