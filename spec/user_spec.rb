@@ -69,7 +69,7 @@ describe UserCli do
     Cli.input = StringIO.new("password") # selecting first origin through stdin
     Cli.run("user add #{user_with_origin} " +
                 '--emails sam@example.com --given_name SamueL ' +
-                "--phones 801-555-1212 --family_name jonES --origin uaa").should be
+                "--phones 801-555-1212 --family_name jonES --origin uaa")
 
     expect(Cli.output.string).to match 'Password:'
     Cli.run("user delete #{user_with_origin}")
@@ -80,7 +80,7 @@ describe UserCli do
     Cli.input = StringIO.new("password") # selecting first origin through stdin
     Cli.run("user add #{user_with_origin} " +
                 '--emails sam@example.com --given_name SamueL ' +
-                "--phones 801-555-1212 --family_name jonES").should be
+                "--phones 801-555-1212 --family_name jonES")
 
     expect(Cli.output.string).to match 'Password:'
     Cli.run("user delete #{user_with_origin}")
