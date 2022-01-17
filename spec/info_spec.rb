@@ -53,11 +53,6 @@ describe InfoCli do
     Cli.output.string.should include "score", "requiredScore"
   end
 
-  it "gets the server stats" do
-    pending "no UAA_VARZ_SECRET environment variable set" unless @varz_secret
-    Cli.run("stats -c varz -s #{@varz_secret}").should be
-    Cli.output.string.should include 'type: UAA', 'mem:', 'version:'
-  end
 
   it "sets multiple targets to be fully qualified in config and targets output" do
     Config.load("")
