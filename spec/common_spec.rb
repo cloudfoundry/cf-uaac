@@ -44,7 +44,7 @@ describe CommonCli do
 
   it "displays user help with -h has --origin option" do
     Cli.run("user -h")
-    Cli.output.string.should include("--origin <identity provider origin, defaults to UAA>")
+    Cli.output.string.should include("--origin <name>, select user to update by identity provider origin. Defaults to UAA")
   end
 
   it "displays group help with -h has --origin option" do
