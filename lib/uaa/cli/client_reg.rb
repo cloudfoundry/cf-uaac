@@ -52,7 +52,7 @@ class ClientCli < CommonCli
         info[k] = Util.arglist(info[k]) if p == 'list'
         info.delete(k) unless info[k]
       end
-      if k == :allowedproviders && (info[k].join('') == 'all' || info[k].join('') == 'null' || info[k].join('') == 'nil')
+      if opts.key?(k) && k == :allowedproviders && (info[k].join('') == 'all' || info[k].join('') == 'null' || info[k].join('') == 'nil')
         info[:allowedproviders] = nil
       end
     end
