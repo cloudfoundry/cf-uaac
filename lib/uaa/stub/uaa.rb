@@ -15,7 +15,6 @@ require 'uaa'
 require 'uaa/stub/server'
 require 'uaa/stub/scim'
 require 'uaa/cli/version'
-require 'cgi'
 require 'pp'
 
 module CF::UAA
@@ -169,7 +168,6 @@ class StubUAAConn < Stub::Base
     ah = basic_auth_header.split(' ')
     return unless ah[0] =~ /^basic$/i
     ah = Base64::strict_decode64(ah[1]).split(':')
-    ah = ah.map { |item| CGI::unescape(item) }
     client = server.scim.get_by_name(ah[0], :client)
     client if client && client[:client_secret] == ah[1]
   end

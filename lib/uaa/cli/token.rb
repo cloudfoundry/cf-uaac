@@ -88,7 +88,7 @@ class TokenCli < CommonCli
 
   def issuer_request(client_id, secret = nil)
     update_target_info
-    yield TokenIssuer.new(Config.target.to_s, CGI.escape(client_id), CGI.escape(secret),
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret,
         { token_target: Config.target_value(:token_endpoint),
           skip_ssl_validation: Config.target_value(:skip_ssl_validation),
           ssl_ca_file: Config.target_value(:ca_cert) })
