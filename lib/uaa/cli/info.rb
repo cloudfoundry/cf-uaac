@@ -47,10 +47,6 @@ class InfoCli < CommonCli
     pp info
   end
 
-  desc "stats", "Show UAA's current usage statistics", :client, :secret do
-    pp misc_request { @cli_class.uaa_info_client.varz(clientid, clientsecret) }
-  end
-
   desc "password strength [password]", "calculate strength score of a password" do |pwd|
     pp misc_request { @cli_class.uaa_info_client.password_strength(userpwd(pwd)) }
   end
