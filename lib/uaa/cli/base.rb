@@ -65,7 +65,7 @@ class Topic
 
   def terminal_columns
     return @terminal_columns ||= 0 if @terminal_columns || !@output.tty?
-    cols = HighLine::SystemExtensions.terminal_size.first rescue 0
+    cols = HighLine::SystemExtensions.terminal_size.first rescue 80 if $stdin.tty?
     @terminal_columns = !cols || cols < 40 ? 0 : cols
   end
 
