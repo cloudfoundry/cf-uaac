@@ -28,6 +28,7 @@ class ClientCli < CommonCli
       :refresh_token_validity => 'seconds',
       :redirect_uri => 'list',
       :autoapprove => 'list',
+      :allowedproviders => 'list',
       :'signup_redirect_url' => 'url'
   }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
@@ -50,6 +51,9 @@ class ClientCli < CommonCli
       else
         info[k] = Util.arglist(info[k]) if p == 'list'
         info.delete(k) unless info[k]
+      end
+      if opts.key?(k) && k == :allowedproviders && (info[k].join('') == 'all' || info[k].join('') == 'null' || info[k].join('') == 'nil')
+        info[:allowedproviders] = nil
       end
     end
   end
