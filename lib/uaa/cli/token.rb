@@ -25,6 +25,7 @@ class TokenCatcher < Stub::Base
     secret = server.info.delete(:client_secret)
     ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret,
         { token_target: Config.target_value(:token_target),
+          basic_auth: Config.target_value(:basic_auth),
           skip_ssl_validation: Config.target_value(:skip_ssl_validation)})
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
@@ -88,8 +89,9 @@ class TokenCli < CommonCli
 
   def issuer_request(client_id, secret = nil)
     update_target_info
-    yield TokenIssuer.new(Config.target.to_s, CGI.escape(client_id), CGI.escape(secret),
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret,
         { token_target: Config.target_value(:token_endpoint),
+          basic_auth: Config.target_value(:basic_auth),
           skip_ssl_validation: Config.target_value(:skip_ssl_validation),
           ssl_ca_file: Config.target_value(:ca_cert) })
   rescue Exception => e
