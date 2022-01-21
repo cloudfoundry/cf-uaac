@@ -66,7 +66,7 @@ class Topic
 
   def terminal_columns
     return @terminal_columns ||= 0 if @terminal_columns || !@output.tty?
-    rows, cols = IO.console.winsize
+    cols = IO.console.winsize.last rescue 0 if $stdin.tty?
     @terminal_columns = !cols || cols < 40 ? 0 : cols
   end
 
