@@ -17,6 +17,24 @@ gem build cf-uaac.gemspec
 gem install cf-uaac*.gem
 ```
 
+### Troubleshooting possible installation issues
+
+You may encounter some errors when building native extentions of the required
+Gems. We redirect you to the documentation of those Gem dependencies, as many
+different compilation/linking issue may occur.
+
+Typical issues with x86 Darwin systems (i.e. macOS) may involve the following
+`cflags` and `ldflags` options, for the `bundler` Gem to properly build the
+required Gems native extensions. You should not use them blindly without
+knowing what you're doing. If you don't want persistent workarounds in your
+Bundler config, those settings can also be passed to one-off `gem install`
+invocations. Please refer to `gem help install` and `man bundle-config`.
+
+```
+bundle config build.eventmachine --with-cflags="-fms-extensions"
+bundle config build.mysql2 --with-ldflags="-L/usr/local/opt/openssl@1.1/lib"
+bundle config build.thin --with-cflags="-fms-extensions -Wno-error=implicit-function-declaration"
+```
 
 ## Concepts
 
