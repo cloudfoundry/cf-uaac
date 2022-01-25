@@ -35,6 +35,11 @@ Now that UAAC has your token, you're able to run commands and hit the endpoints 
 
 To use the APIs, see: https://github.com/cloudfoundry/cf-uaa-lib
 
+### Caveats in connecting
+
+When necessary, the `--skip-ssl-validation` flag should be used once only,
+along with the `uaac target` invocation. See `uaac target -h`.
+
 
 ## Creating clients
 
