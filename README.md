@@ -3,6 +3,11 @@
 ![Build status](https://github.com/cloudfoundry/cf-uaac/actions/workflows/ruby.yml/badge.svg)
 [![Gem Version](https://badge.fury.io/rb/cf-uaac.png)](https://rubygems.org/gems/cf-uaac)
 
+## Operating system compatibility 
+
+The `uaac` CLI is tested on Linux and Mac OS, and is supported on these systems.
+It is not tested or supported on Windows, though it has been known to work at some point.
+
 ## Installation
 
 From Rubygems:
