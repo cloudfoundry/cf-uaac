@@ -28,6 +28,7 @@ class ClientCli < CommonCli
       :refresh_token_validity => 'seconds',
       :redirect_uri => 'list',
       :autoapprove => 'list',
+      :allowpublic => 'list',
       :allowedproviders => 'list',
       :'signup_redirect_url' => 'url'
   }
@@ -46,7 +47,7 @@ class ClientCli < CommonCli
         info[k] = opts[:interact] ?
           info[k] = askd("#{k.to_s.gsub('_', ' ')} (#{p})", default): default
       end
-      if k == :autoapprove && (info[k] == 'true' || info[k] == 'false')
+      if (k == :autoapprove || k == :allowpublic) && (info[k] == 'true' || info[k] == 'false')
         info[k] = !!(info[k] == 'true')
       else
         info[k] = Util.arglist(info[k]) if p == 'list'
