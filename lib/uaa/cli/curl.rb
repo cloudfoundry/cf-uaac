@@ -27,7 +27,7 @@ module CF::UAA
     define_option :data, "-d", "--data <data>", "data included in request body"
     define_option :header, "-H", "--header <header>", "header to be included in the request"
     define_option :insecure, "-k", "--insecure", "makes request without verifying SSL certificates"
-    define_option :quiet, "-q", "--quiet", "Quiet, show only body"
+    define_option :quiet, "-q", "--quiet", "Quiet, show body only"
 
     desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :quiet do |path|
       return say_command_help(["curl"]) unless path
