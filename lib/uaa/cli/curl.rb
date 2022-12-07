@@ -27,16 +27,16 @@ module CF::UAA
     define_option :data, "-d", "--data <data>", "data included in request body"
     define_option :header, "-H", "--header <header>", "header to be included in the request"
     define_option :insecure, "-k", "--insecure", "makes request without verifying SSL certificates"
-    define_option :quiet, "-q", "--quiet", "Quiet, show body only"
+    define_option :bodyonly, "-b", "--bodyonly", "show body only in response"
 
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :quiet do |path|
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :bodyonly do |path|
       return say_command_help(["curl"]) unless path
 
       uri = parse_uri(path)
       opts[:request] ||= "GET"
-      print_request(opts[:request], uri, opts[:data], opts[:header], opts[:quiet])
+      print_request(opts[:request], uri, opts[:data], opts[:header], opts[:bodyonly])
       response = make_request(uri, opts)
-      print_response(response, opts[:quiet])
+      print_response(response, opts[:bodyonly])
     end
 
     def parse_uri(path)
@@ -47,16 +47,16 @@ module CF::UAA
       uri
     end
 
-    def print_request(request, uri, data, header, quiet)
-      say_it("#{request} #{uri.to_s}", quiet)
-      say_it("REQUEST BODY: \"#{data}\"", quiet) if data
+    def print_request(request, uri, data, header, bodyonly)
+      say_it("#{request} #{uri.to_s}", bodyonly)
+      say_it("REQUEST BODY: \"#{data}\"", bodyonly) if data
       if header
-        say_it("REQUEST HEADERS:", quiet)
+        say_it("REQUEST HEADERS:", bodyonly)
         Array(header).each do |h|
-          say_it("  #{h}", quiet)
+          say_it("  #{h}", bodyonly)
         end
       end
-      say_it("", quiet)
+      say_it("", bodyonly)
     end
 
     def make_request(uri, options)
@@ -77,14 +77,14 @@ module CF::UAA
       http.request(req, options[:data])
     end
 
-    def print_response(response, quiet)
-      say_it("#{response.code} #{response.message}", quiet)
-      say_it("RESPONSE HEADERS:", quiet)
+    def print_response(response, bodyonly)
+      say_it("#{response.code} #{response.message}", bodyonly)
+      say_it("RESPONSE HEADERS:", bodyonly)
       response.each_capitalized do |key, value|
-        say_it("  #{key}: #{value}", quiet)
+        say_it("  #{key}: #{value}", bodyonly)
       end
 
-      say_it("RESPONSE BODY:", quiet)
+      say_it("RESPONSE BODY:", bodyonly)
       if !response['Content-Type'].nil? && response['Content-Type'].include?('application/json')
         parsed = JSON.parse(response.body)
         formatted = JSON.pretty_generate(parsed)
@@ -94,8 +94,8 @@ module CF::UAA
       end
     end
 
-    def say_it(text, quiet)
-      if !quiet
+    def say_it(text, bodyonly)
+      if !bodyonly
         say text
       end
     end
