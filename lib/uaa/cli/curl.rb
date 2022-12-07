@@ -27,15 +27,16 @@ module CF::UAA
     define_option :data, "-d", "--data <data>", "data included in request body"
     define_option :header, "-H", "--header <header>", "header to be included in the request"
     define_option :insecure, "-k", "--insecure", "makes request without verifying SSL certificates"
+    define_option :bodyonly, "-b", "--bodyonly", "show body only in response"
 
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure do |path|
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :bodyonly do |path|
       return say_command_help(["curl"]) unless path
 
       uri = parse_uri(path)
       opts[:request] ||= "GET"
-      print_request(opts[:request], uri, opts[:data], opts[:header])
+      print_request(opts[:request], uri, opts[:data], opts[:header], opts[:bodyonly])
       response = make_request(uri, opts)
-      print_response(response)
+      print_response(response, opts[:bodyonly])
     end
 
     def parse_uri(path)
@@ -46,16 +47,16 @@ module CF::UAA
       uri
     end
 
-    def print_request(request, uri, data, header)
-      say "#{request} #{uri.to_s}"
-      say "REQUEST BODY: \"#{data}\"" if data
+    def print_request(request, uri, data, header, bodyonly)
+      say_it("#{request} #{uri.to_s}", bodyonly)
+      say_it("REQUEST BODY: \"#{data}\"", bodyonly) if data
       if header
-        say "REQUEST HEADERS:"
+        say_it("REQUEST HEADERS:", bodyonly)
         Array(header).each do |h|
-          say "  #{h}"
+          say_it("  #{h}", bodyonly)
         end
       end
-      say ""
+      say_it("", bodyonly)
     end
 
     def make_request(uri, options)
@@ -76,20 +77,26 @@ module CF::UAA
       http.request(req, options[:data])
     end
 
-    def print_response(response)
-      say "#{response.code} #{response.message}"
-      say "RESPONSE HEADERS:"
+    def print_response(response, bodyonly)
+      say_it("#{response.code} #{response.message}", bodyonly)
+      say_it("RESPONSE HEADERS:", bodyonly)
       response.each_capitalized do |key, value|
-        say "  #{key}: #{value}"
+        say_it("  #{key}: #{value}", bodyonly)
       end
 
-      say "RESPONSE BODY:"
+      say_it("RESPONSE BODY:", bodyonly)
       if !response['Content-Type'].nil? && response['Content-Type'].include?('application/json')
         parsed = JSON.parse(response.body)
         formatted = JSON.pretty_generate(parsed)
-        say formatted
+        say(formatted)
       else
-        say response.body
+        say(response.body)
+      end
+    end
+
+    def say_it(text, bodyonly)
+      if !bodyonly
+        say text
       end
     end
   end

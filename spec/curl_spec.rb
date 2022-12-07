@@ -35,6 +35,8 @@ module CF::UAA
       Cli.output.string.should include "curl [path]"
       Cli.output.string.should include "-X | --request <method>"
       Cli.output.string.should include "-d | --data <data>"
+      Cli.output.string.should include "-k | --insecure"
+      Cli.output.string.should include "-b | --bodyonly"
     end
 
     it "hits the URL on the UAA target" do
