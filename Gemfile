@@ -13,5 +13,5 @@
 
 source 'http://rubygems.org'
 
-# Specify your gem's dependencies in uaa.gemspec
+# Specify your gem's dependencies in cf-uaac.gemspec
 gemspec
