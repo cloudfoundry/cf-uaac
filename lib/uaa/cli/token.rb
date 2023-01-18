@@ -180,7 +180,7 @@ class TokenCli < CommonCli
     return unless opts[:cf]
     begin
       cf_target = File.open(CF_TARGET_FILE, 'r') { |f| f.read.strip }
-      tok_json = File.open(CF_TOKEN_FILE, 'r') { |f| f.read } if File.exists?(CF_TOKEN_FILE)
+      tok_json = File.open(CF_TOKEN_FILE, 'r') { |f| f.read } if File.exist?(CF_TOKEN_FILE)
       cf_tokens = Util.json_parse(tok_json, :none) || {}
       cf_tokens[cf_target] = auth_header
       File.open(CF_TOKEN_FILE, 'w') { |f| f.write(cf_tokens.to_json) }
