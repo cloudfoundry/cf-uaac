@@ -34,7 +34,7 @@ class Config
     if config =~ /^---/ || config == ""
       @config = config == "" ? {} : YAML.load(config)
       @config_file = nil
-    elsif File.exists?(@config_file = config)
+    elsif File.exist?(@config_file = config)
       if (@config = YAML.load_file(@config_file)) && @config.is_a?(Hash)
         @config.each { |k, v| break @config = nil if k.to_s =~ / / }
       end
