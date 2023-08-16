@@ -184,10 +184,11 @@ class MiscCli < CommonCli
   end
 
   define_option :ca_cert, "--ca-cert [file]", "use the given CA certificate to validate the target's SSL certificate"
+  define_option :pkce, "--[no-]pkce", "use PKCE (RFC 7636) in authorization grant flow"
   define_option :skip_ssl_validation, "--skip-ssl-validation", "do not attempt to validate ssl certificate"
   define_option :force, "--[no-]force", "-f", "set even if target does not respond"
   define_option :basic_auth, "--[no-]basic_auth", "set if you need basic or oauth2 (url encoded) client authentication"
-  desc "target [uaa_url]", "Display current or set new target", :force, :ca_cert, :skip_ssl_validation, :basic_auth do |uaa_url|
+  desc "target [uaa_url]", "Display current or set new target", :force, :ca_cert, :skip_ssl_validation, :basic_auth, :pkce do |uaa_url|
     msg, info = nil, {}
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url
@@ -207,6 +208,8 @@ class MiscCli < CommonCli
       Config.target_opts(ca_cert: opts[:ca_cert])
       Config.target_opts(basic_auth: true) if opts[:basic_auth] == true
       Config.target_opts(basic_auth: false) if opts[:basic_auth] == false
+      Config.target_opts(pkce: false) if opts[:pkce] == false
+      Config.target_opts(pkce: true) if opts[:pkce] == true
       update_target_info(info) if info[:prompts]
     end
     return say "no target set" unless Config.target
