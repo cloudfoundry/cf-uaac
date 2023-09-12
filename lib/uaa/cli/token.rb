@@ -27,7 +27,7 @@ class TokenCatcher < Stub::Base
     ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret,
         { token_target: Config.target_value(:token_target),
           basic_auth: Config.target_value(:basic_auth),
-          use_pkce: Config.target_value(:pkce),
+          use_pkce: true,
           code_verifier: server.info.delete(:code_verifier),
           skip_ssl_validation: Config.target_value(:skip_ssl_validation)})
     tkn = do_authcode ? ti.authcode_grant(server.info.delete(:uri), data) :
@@ -95,7 +95,7 @@ class TokenCli < CommonCli
     yield TokenIssuer.new(Config.target.to_s, client_id, secret,
         { token_target: Config.target_value(:token_endpoint),
           basic_auth: Config.target_value(:basic_auth),
-          use_pkce: Config.target_value(:pkce),
+          use_pkce: true,
           code_verifier: code_verifier,
           skip_ssl_validation: Config.target_value(:skip_ssl_validation),
           ssl_ca_file: Config.target_value(:ca_cert) })
@@ -166,7 +166,7 @@ class TokenCli < CommonCli
 
   def use_browser(client_id, secret = nil, grant = nil)
     do_authcode = (not grant.nil?) && (grant == 'authcode')
-    code_verifier = Config.target_value(:pkce) == false ? nil : SecureRandom.base64(96).tr("+/", "-_").tr("=", "")
+    code_verifier = SecureRandom.base64(96).tr("+/", "-_").tr("=", "")
     catcher = Stub::Server.new(TokenCatcher,
         logger: Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
         info: {client_id: client_id, client_secret: secret, code_verifier: code_verifier, do_authcode: do_authcode},
