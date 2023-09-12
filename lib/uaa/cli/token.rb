@@ -23,11 +23,14 @@ class TokenCatcher < Stub::Base
   def process_grant(data)
     server.logger.debug "processing grant for path #{request.path}"
     secret = server.info.delete(:client_secret)
+    do_authcode = server.info.delete(:do_authcode)
     ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret,
         { token_target: Config.target_value(:token_target),
           basic_auth: Config.target_value(:basic_auth),
+          use_pkce: true,
+          code_verifier: server.info.delete(:code_verifier),
           skip_ssl_validation: Config.target_value(:skip_ssl_validation)})
-    tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
+    tkn = do_authcode ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
     server.info.update(token_info: tkn.info)
     reply.text "you are now logged in and can close this window"
@@ -87,11 +90,13 @@ class TokenCli < CommonCli
     did_save
   end
 
-  def issuer_request(client_id, secret = nil)
+  def issuer_request(client_id, secret = nil, code_verifier = nil)
     update_target_info
     yield TokenIssuer.new(Config.target.to_s, client_id, secret,
         { token_target: Config.target_value(:token_endpoint),
           basic_auth: Config.target_value(:basic_auth),
+          use_pkce: true,
+          code_verifier: code_verifier,
           skip_ssl_validation: Config.target_value(:skip_ssl_validation),
           ssl_ca_file: Config.target_value(:ca_cert) })
   rescue Exception => e
@@ -159,24 +164,26 @@ class TokenCli < CommonCli
   CF_TOKEN_FILE = File.join ENV["HOME"], ".cf_token"
   CF_TARGET_FILE = File.join ENV["HOME"], ".cf_target"
 
-  def use_browser(client_id, secret = nil)
+  def use_browser(client_id, secret = nil, grant = nil)
+    do_authcode = (not grant.nil?) && (grant == 'authcode')
+    code_verifier = SecureRandom.base64(96).tr("+/", "-_").tr("=", "")
     catcher = Stub::Server.new(TokenCatcher,
         logger: Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
-        info: {client_id: client_id, client_secret: secret},
+        info: {client_id: client_id, client_secret: secret, code_verifier: code_verifier, do_authcode: do_authcode},
         port: opts[:port]).run_on_thread
-    uri = issuer_request(client_id, secret) { |ti|
-      secret ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
+    uri = issuer_request(client_id, secret, code_verifier) { |ti|
+      do_authcode ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
           ti.implicit_uri("#{catcher.url}/callback", opts[:scope])
     }
     return unless catcher.info[:uri] = uri
-    say "launching browser with #{uri}" if trace?
-    Launchy.open(uri, debug: true, dry_run: false)
+    say " and launching browser with #{uri}"
+    Launchy.open(uri, debug: false, dry_run: false)
     print "waiting for token "
     while catcher.info[:uri] || !catcher.info[:token_info]
       sleep 5
       print "."
     end
-    say_success(secret ? "authorization code" : "implicit") if set_context(catcher.info[:token_info])
+    say_success(do_authcode ? "authorization code" : "implicit") if set_context(catcher.info[:token_info])
     return unless opts[:cf]
     begin
       cf_target = File.open(CF_TARGET_FILE, 'r') { |f| f.read.strip }
@@ -193,7 +200,7 @@ class TokenCli < CommonCli
   define_option :port, "--port <number>", "pin internal server to specific port"
   define_option :cf, "--[no-]cf", "save token in the ~/.cf_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      :client, :secret, :scope, :cf, :port do use_browser(clientid, clientsecret) end
+      :client, :secret, :scope, :cf, :port do use_browser(clientid, opts[:secret], 'authcode') end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
       :client, :scope, :cf, :port do use_browser opts[:client] || "cf" end
