@@ -414,6 +414,13 @@ class StubUAAConn < Stub::Base
     reply.json(status: 'ok', message: 'secret updated')
   end
 
+  route :put, %r{^/oauth/clients/([^/]+)/clientjwt$}, 'content-type' => %r{application/json} do
+    info = Util.json_parse(request.body, :down)
+    return not_found(match[1]) unless id = server.scim.id(match[1], :client)
+    return bad_request('no client_id given') unless info['client_id']
+    reply.json(status: 'ok', message: 'client jwt updated')
+  end
+
   #----------------------------------------------------------------------------
   # users and groups endpoints
   #
