@@ -78,6 +78,14 @@ describe ClientCli do
       Cli.output.string.should include 'access_denied'
     end
 
+    it "changes it's client jwt" do
+      Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+      Cli.run('token decode').should be
+      Cli.run("client jwt add #{@test_client} --jwks_uri http://localhost:8080/uaa/token_keys").should be
+      Cli.run("client jwt update #{@test_client} --jwks_uri http://localhost:8080/uaa/token_keys").should be
+      Cli.run("client jwt delete #{@test_client} ").should be
+    end
+
     context 'as updated client' do
 
       before :all do
