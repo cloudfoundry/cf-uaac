@@ -30,7 +30,8 @@ class ClientCli < CommonCli
       :autoapprove => 'list',
       :allowpublic => 'list',
       :allowedproviders => 'list',
-      :'signup_redirect_url' => 'url'
+      :'signup_redirect_url' => 'url',
+      :required_user_groups => 'list'
   }
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
@@ -65,8 +66,18 @@ class ClientCli < CommonCli
 
   desc "client get [id]", "Get specific client registration", :attrs do |id|
     pp(scim_request do |sr|
-      client = scim_get_object(sr, :client, clientid(id), opts[:attrs])
-      add_meta_fields_to_client(sr, client)
+      if opts[:attrs] == nil
+        # return whole object, not search by filter
+        begin
+          client = sr.get(:client, clientid(id))
+        rescue NotFound
+          # to raise same error as scim_get_object
+          raise NotFound
+        end
+      else
+        client = scim_get_object(sr, :client, clientid(id), opts[:attrs])
+      end
+      add_meta_fields_to_client(sr, client, id)
     end)
   end
 
@@ -153,8 +164,12 @@ class ClientCli < CommonCli
     add_meta_fields_to_client(cr, client)
   end
 
-  def add_meta_fields_to_client(cr, client)
-    meta = cr.get_client_meta(client['client_id'])
+  def add_meta_fields_to_client(cr, client, id = nil)
+    # when attrs for get does not contain client_id, client does not have client_id, therefore i have added id
+    if id == nil
+      id = client['client_id']
+    end
+    meta = cr.get_client_meta(id)
     client.merge({:created_by => meta['createdby']})
   end
 end
