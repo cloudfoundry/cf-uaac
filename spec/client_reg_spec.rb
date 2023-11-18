@@ -86,6 +86,12 @@ describe ClientCli do
       Cli.run("client jwt delete #{@test_client} ").should be
     end
 
+    it "fails to get client" do
+      Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
+      Cli.run("token client get not-existing -s secret").should be_nil
+      Cli.output.string.should include 'invalid_client'
+    end
+
     context 'as updated client' do
 
       before :all do
