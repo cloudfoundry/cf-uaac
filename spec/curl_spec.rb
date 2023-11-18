@@ -37,6 +37,7 @@ module CF::UAA
       Cli.output.string.should include "-d | --data <data>"
       Cli.output.string.should include "-k | --insecure"
       Cli.output.string.should include "-b | --bodyonly"
+      Cli.output.string.should include "-C | --cacert"
     end
 
     it "hits the URL on the UAA target" do
@@ -107,6 +108,20 @@ module CF::UAA
 
       Cli.output.string.should_not include "ECONNRESET"
       Cli.output.string.should include "200 OK"
+    end
+
+    it "makes insecure requests without the -k flag" do
+      Cli.run("curl https://example.com/")
+
+      Cli.output.string.should_not include "ECONNRESET"
+      Cli.output.string.should include "200 OK"
+    end
+
+    it "makes requests using invalid custom ca cert file with the -C flag" do
+      Cli.run("curl https://example.com/ -C ca.pem")
+
+      Cli.output.string.should_not include "200 OK"
+      Cli.output.string.should include "SSLError"
     end
   end
 end
