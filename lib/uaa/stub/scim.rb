@@ -27,7 +27,7 @@ class StubScim
 
   private
 
-  CREATOR = 'Stalin'
+  CREATOR = 'Freedom'
 
   # attribute types. Anything not listed is case-ignore string
   HIDDEN_ATTRS = [:rtype, :password, :client_secret].to_set
