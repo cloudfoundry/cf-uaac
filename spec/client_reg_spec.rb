@@ -88,8 +88,12 @@ describe ClientCli do
 
     it "fails to get client" do
       Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
-      Cli.run("token client get not-existing -s secret").should be_nil
-      Cli.output.string.should include 'invalid_client'
+      Cli.run("context #{@admin_client}").should be
+      Cli.run("client get #{@test_client}").should be
+      Cli.run("client get #{@test_client} -a id").should be
+      Cli.output.string.should include 'id'
+      Cli.run("client get not-existing").should be_nil
+      Cli.output.string.should include 'NotFound'
     end
 
     context 'as updated client' do
@@ -98,10 +102,11 @@ describe ClientCli do
         # update the test client as the admin client
         Cli.run("token client get #{@test_client} -s #{@test_secret}").should be
         Cli.run("context #{@admin_client}").should be
-        Cli.run("client update #{@test_client} --authorities scim.write,scim.read").should be
+        Cli.run("client update #{@test_client} --authorities scim.write,scim.read --required_user_groups openid").should be
         Cli.output.string.should include 'created_by'
         Cli.run("client get #{@test_client}").should be
         Cli.output.string.should include 'scim.read', 'scim.write'
+        Cli.output.string.should include 'required_user_groups'
       end
 
       it 'fails to create a user account with old token' do
