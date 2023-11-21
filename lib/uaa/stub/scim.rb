@@ -27,7 +27,7 @@ class StubScim
 
   private
 
-  CREATOR = 'Stalin'
+  CREATOR = 'Freedom'
 
   # attribute types. Anything not listed is case-ignore string
   HIDDEN_ATTRS = [:rtype, :password, :client_secret].to_set
@@ -66,7 +66,7 @@ class StubScim
       client: [*COMMON_ATTRS, :client_id, :name, :client_secret, :authorities,
         :authorized_grant_types, :scope, :autoapprove,
         :access_token_validity, :refresh_token_validity, :redirect_uri, :allowedproviders,
-        :'signup_redirect_url'].to_set,
+        :'signup_redirect_url', :required_user_groups].to_set,
       group: [*COMMON_ATTRS, :displayname, :members, :writers, :readers, :external_groups].to_set }
   VISIBLE_ATTRS = {user: Set.new(LEGAL_ATTRS[:user] - HIDDEN_ATTRS),
       client: Set.new(LEGAL_ATTRS[:client] - HIDDEN_ATTRS),
