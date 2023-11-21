@@ -165,7 +165,6 @@ class ClientCli < CommonCli
   end
 
   def add_meta_fields_to_client(cr, client, id = nil)
-    # when attrs for get does not contain client_id, client does not have client_id, therefore i have added id
     if id == nil
       id = client['client_id']
     end
