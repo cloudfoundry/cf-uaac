@@ -27,9 +27,10 @@ module CF::UAA
     define_option :data, "-d", "--data <data>", "data included in request body"
     define_option :header, "-H", "--header <header>", "header to be included in the request"
     define_option :insecure, "-k", "--insecure", "makes request without verifying SSL certificates"
+    define_option :cacert, "-C", "--cacert <ca_file>", "CA certificate to verify peer against"
     define_option :bodyonly, "-b", "--bodyonly", "show body only in response"
 
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :bodyonly do |path|
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :bodyonly, :cacert do |path|
       return say_command_help(["curl"]) unless path
 
       uri = parse_uri(path)
@@ -65,6 +66,9 @@ module CF::UAA
         http.use_ssl = true
         if options[:insecure]
           http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        elsif options[:cacert]
+          http.ca_file = File.expand_path(options[:cacert])
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
         end
       end
       request_class = Net::HTTP.const_get("#{options[:request][0]}#{options[:request][1..-1].downcase}")
