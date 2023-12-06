@@ -30,7 +30,7 @@ module CF::UAA
     define_option :cacert, "-C", "--cacert <ca_file>", "CA certificate to verify peer against"
     define_option :bodyonly, "-b", "--bodyonly", "show body only in response"
 
-    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure , :bodyonly, :cacert do |path|
+    desc "curl [path]", "CURL to a UAA endpoint", :request, :data, :header, :insecure, :cacert, :bodyonly do |path|
       return say_command_help(["curl"]) unless path
 
       uri = parse_uri(path)
