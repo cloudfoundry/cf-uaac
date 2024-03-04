@@ -40,7 +40,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'ci_reporter_rspec', '~> 1.0'
   s.add_runtime_dependency 'highline', '>= 2', '< 4'
   s.add_runtime_dependency 'eventmachine', '~> 1.2'
-  s.add_runtime_dependency 'launchy', '~> 2.5'
+  s.add_runtime_dependency 'launchy', '>= 2.5', '< 4.0'
   s.add_runtime_dependency 'em-http-request', '~> 1.1', '>= 1.1.2'
   s.add_runtime_dependency 'json_pure', '~>2.6'
   s.add_runtime_dependency 'rack', '~>3.0'
