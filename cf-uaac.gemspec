@@ -36,7 +36,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rspec', '~> 3.12'
   s.add_development_dependency 'simplecov', '~> 0.22.0'
   s.add_development_dependency 'simplecov-rcov', '~> 0.3.1'
-  s.add_development_dependency 'ci_reporter', '~> 2.0'
+  s.add_development_dependency 'ci_reporter', '~> 2.1.0'
   s.add_development_dependency 'ci_reporter_rspec', '~> 1.0'
   s.add_runtime_dependency 'highline', '>= 2', '< 4'
   s.add_runtime_dependency 'eventmachine', '~> 1.2'
