@@ -30,8 +30,8 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ['lib']
 
-  # dependencies , e.g. cf-uaa-lib
-  s.add_runtime_dependency 'cf-uaa-lib', '~> 4.0.4'
+  # dependencies
+  s.add_runtime_dependency 'cf-uaa-lib', '~> 4.0.5'
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rspec', '~> 3.12'
   s.add_development_dependency 'simplecov', '~> 0.22.0'
