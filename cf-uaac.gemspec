@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'eventmachine', '~> 1.2'
   s.add_runtime_dependency 'launchy', '>= 2.5', '< 4.0'
   s.add_runtime_dependency 'em-http-request', '~> 1.1', '>= 1.1.2'
-  s.add_runtime_dependency 'json_pure', '~>2.6'
+  s.add_runtime_dependency 'json_pure', '~>2.7'
+  s.add_runtime_dependency 'multi_json', '>= 1.12.1', '< 1.16'
   s.add_runtime_dependency 'rack', '~>3.0'
 end
