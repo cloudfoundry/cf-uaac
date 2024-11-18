@@ -101,7 +101,7 @@ class Reply
     info = {message: info} unless info.respond_to? :each
     @status = status if status
     headers["content-type"] = "application/json"
-    @body = MultiJson.dump(info)
+    @body = JSON.dump(info)
     nil
   end
   def text(status = nil, info)
