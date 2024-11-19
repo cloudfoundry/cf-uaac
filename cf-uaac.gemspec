@@ -31,7 +31,7 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   # dependencies
-  s.add_runtime_dependency 'cf-uaa-lib', '~> 4.0.6'
+  s.add_runtime_dependency 'cf-uaa-lib', '~> 4.0.7'
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rspec', '~> 3.12'
   s.add_development_dependency 'simplecov', '~> 0.22.0'
@@ -42,6 +42,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'eventmachine', '~> 1.2'
   s.add_runtime_dependency 'launchy', '>= 2.5', '< 4.0'
   s.add_runtime_dependency 'em-http-request', '~> 1.1', '>= 1.1.2'
-  s.add_runtime_dependency 'json_pure', '~>2.7'
+  s.add_runtime_dependency 'json', '~>2.7'
   s.add_runtime_dependency 'rack', '~>3.0'
 end

@@ -13,7 +13,7 @@
 
 require 'highline'
 require 'optparse'
-require 'json/pure'
+require 'json'
 require 'io/console'
 
 module CF; module UAA end end

@@ -15,7 +15,7 @@ require 'uaa/cli/common'
 require 'rack'
 require 'net/http'
 require 'uaa/http'
-require 'json/pure'
+require 'json'
 
 module CF::UAA
   class CurlCli < CommonCli

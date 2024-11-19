@@ -16,7 +16,7 @@ require 'date'
 require 'logger'
 require 'pp'
 require 'erb'
-require 'json/pure'
+require 'json'
 require 'rack'
 
 module Stub
