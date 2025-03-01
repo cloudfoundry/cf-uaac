@@ -134,25 +134,28 @@ class ClientCli < CommonCli
 
   define_option :jwks_uri, '--jwks_uri <token_keys endpoint>', 'JWKS token key endpoint'
   define_option :jwks, '--jwks <json token key set>', 'JWKS token key'
-  desc 'client jwt add [id]', 'Add client jwt trust', :jwks_uri, :jwks do |id|
+  define_option :iss, '--issuer <Issuer>', 'Issuer to trust'
+  define_option :sub, '--subject <Subject>', 'Subject to trust'
+  define_option :aud, '--audience <Audience>', 'Audience to trust'
+  desc 'client jwt add [id]', 'Add client jwt trust', :jwks_uri, :jwks, :iss, :sub, :aud do |id|
     pp scim_request { |cr|
       ###change_clientjwt(client_id, jwks_uri = nil, jwks = nil, kid = nil, changeMode = nil)
-      cr.change_clientjwt(clientid(id), opts[:jwks_uri], opts[:jwks], nil, 'ADD')
+      cr.change_clientjwt(clientid(id), opts[:jwks_uri], opts[:jwks], nil, 'ADD', opts[:iss], opts[:sub], opts[:aud])
       'client jwt successfully added'
     }
   end
 
-  desc 'client jwt update [id]', 'Update client jwt trust', :jwks_uri, :jwks do |id|
+  desc 'client jwt update [id]', 'Update client jwt trust', :jwks_uri, :jwks, :iss, :sub, :aud do |id|
     pp scim_request { |cr|
-      cr.change_clientjwt(clientid(id), opts[:jwks_uri], opts[:jwks], nil, 'UPDATE')
+      cr.change_clientjwt(clientid(id), opts[:jwks_uri], opts[:jwks], nil, 'UPDATE', opts[:iss], opts[:sub], opts[:aud])
       'client jwt successfully set'
     }
   end
 
   define_option :kid, '--kid <key id in json token keys>', 'JWKS token key'
-  desc 'client jwt delete [id]', 'Delete client jwt trust', :kid do |id|
+  desc 'client jwt delete [id]', 'Delete client jwt trust', :kid, :jwks, :iss, :sub, :aud do |id|
     pp scim_request { |cr|
-      cr.change_clientjwt(clientid(id), '*', nil, opts[:kid], 'DELETE')
+      cr.change_clientjwt(clientid(id), '*', nil, opts[:kid], 'DELETE', opts[:iss], opts[:sub], opts[:aud])
       'client jwt successfully deleted'
     }
   end
