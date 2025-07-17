@@ -2,7 +2,6 @@
 .bundle
 .rspec
 .idea/
-Gemfile.lock
 pkg/
 doc/
 coverage/
