@@ -43,5 +43,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'launchy', '>= 2.5', '< 4.0'
   s.add_runtime_dependency 'em-http-request', '~> 1.1', '>= 1.1.2'
   s.add_runtime_dependency 'json', '~>2.7'
-  s.add_runtime_dependency 'rack', '~>3.2', '>= 3.2.4'
+  s.add_runtime_dependency 'rack', '~> 3.2', '>= 3.2.4'
 end
