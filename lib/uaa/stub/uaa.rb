@@ -466,12 +466,12 @@ class StubUAAConn < Stub::Base
   route :get, %r{^/Groups/External/list(\?|$)(.*)} do
     return unless valid_token('scim.read')
 
-    query_params = CGI::parse(match[2])
+    query_params = URI.decode_www_form(match[2]).to_h
 
-    start_index_param = query_params['startIndex'].first
+    start_index_param = query_params['startIndex'] || ''
     start_index = start_index_param.empty? ? 1 : start_index_param.to_i
 
-    count_param = query_params['count'].first
+    count_param = query_params['count'] || ''
     count = count_param.empty? ? 100 : count_param.to_i
 
     group_mappings = server.scim.get_group_mappings

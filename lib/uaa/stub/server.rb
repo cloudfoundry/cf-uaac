@@ -11,7 +11,7 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'eventmachine'
+require 'socket'
 require 'date'
 require 'logger'
 require 'pp'
@@ -33,7 +33,6 @@ class Request
   private
 
   def bslice(str, range)
-    # byteslice is available in ruby 1.9.3
     str.respond_to?(:byteslice) ? str.byteslice(range) : str.slice(range)
   end
 
@@ -64,7 +63,7 @@ class Request
 
   public
 
-  # adds data to the request, returns true if request is complete
+  # adds data to the request, returns truthy if request is complete
   def completed?(str)
     str, @prelude = @prelude + str, "" unless @prelude.empty?
     add_lines(str)
@@ -136,7 +135,6 @@ class Base
   attr_accessor :request, :reply, :match, :server
 
   def self.route(http_methods, matcher, filters = {}, &handler)
-    fail unless !EM.reactor_running? || EM.reactor_thread?
     matcher = Regexp.new("^#{Regexp.escape(matcher.to_s)}$") unless matcher.is_a?(Regexp)
     filters = filters.each_with_object({}) { |(k, v), o|
       o[k.downcase] = v.is_a?(Regexp) ? v : Regexp.new("^#{Regexp.escape(v.to_s)}$")
@@ -156,7 +154,6 @@ class Base
   end
 
   def self.find_route(request)
-    fail unless EM.reactor_thread?
     if @routes && (rary = @routes[request.method])
       rary.each { |r; m|
         next unless (m = r[0].match(request.path))
@@ -205,43 +202,59 @@ class Base
 end
 
 #------------------------------------------------------------------------------
-module Connection
-  attr_accessor :req_handler
-  def unbind; req_handler.server.delete_connection(self) end
-
-  def receive_data(data)
-    #req_handler.server.logger.debug "got #{data.bytesize} bytes: #{data.inspect}"
-    return unless req_handler.request.completed? data
-    req_handler.process
-    send_data req_handler.reply.to_s
-    if req_handler.reply.headers['connection'] =~ /^close$/i || req_handler.server.status != :running
-      close_connection_after_writing
-    end
-  rescue Exception => e
-    req_handler.server.logger.debug "exception from receive_data: #{e.message}"
-    req_handler.server.trace { e.backtrace }
-    close_connection
-  end
-end
-
-#------------------------------------------------------------------------------
 class Server
 
   private
 
-  def done
-    fail unless @connections.empty?
-    EM.stop if @em_thread && EM.reactor_running?
-    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
-    sleep 0.1 unless EM.reactor_thread? # give EM a chance to stop
-    logger.debug EM.reactor_running?? "server done but EM still running": "server really done"
+  # Handle one TCP client socket: parse requests, dispatch, write replies.
+  # Supports keep-alive: the Request object resets itself after each
+  # completed? call, so the same req_handler is reused for pipelined requests.
+  def handle_client(socket)
+    req_handler = @req_handler.new(self)
+    loop do
+      # If leftover bytes from the previous request already complete the next
+      # one (pipelining / chunked reads), process without a blocking read.
+      unless req_handler.request.completed?("")
+        begin
+          data = socket.readpartial(4096)
+        rescue EOFError, Errno::ECONNRESET
+          break
+        end
+        next unless req_handler.request.completed?(data)
+      end
+      req_handler.process
+      socket.write(req_handler.reply.to_s)
+      break if req_handler.reply.headers['connection'] =~ /^close$/i || @status != :running
+    end
+  rescue Errno::ECONNRESET, Errno::EPIPE, IOError => e
+    logger.debug "connection error: #{e.message}"
+  ensure
+    socket.close rescue nil
+    @mutex.synchronize { @connections.delete(socket) }
+    logger.debug "connection closed"
   end
 
-  def initialize_connection(conn)
-    logger.debug "starting connection"
-    fail unless EM.reactor_thread?
-    @connections << conn
-    conn.req_handler, conn.comm_inactivity_timeout = @req_handler.new(self), 30
+  # Accept connections in a loop until the server is stopped or the listening
+  # socket is closed.
+  def accept_loop
+    loop do
+      begin
+        socket = @tcp_server.accept_nonblock
+        @mutex.synchronize { @connections << socket }
+        logger.debug "starting connection"
+        Thread.new(socket) { |s| handle_client(s) }
+      rescue IO::WaitReadable, Errno::EINTR
+        IO.select([@tcp_server], nil, nil, 0.5) rescue nil
+        break if @status != :running
+      rescue Errno::EBADF, IOError
+        break
+      end
+    end
+  rescue => e
+    logger.debug "accept loop error: #{e.message}" unless e.is_a?(IOError) || e.is_a?(Errno::EBADF)
+  ensure
+    @status = :stopped
+    logger.debug "server really done"
   end
 
   public
@@ -258,64 +271,54 @@ class Server
     @host = options[:host] || "localhost"
     @init_port = options[:port] || 0
     @root = options[:root]
-    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
+    @connections = []
+    @mutex = Mutex.new
+    @status = :stopped
+    @server_thread = nil
   end
 
   def start
     raise ArgumentError, "attempt to start a server that's already running" unless @status == :stopped
     logger.debug "starting #{self.class} server #{@host}"
-    EM.schedule do
-      @sig = EM.start_server(@host, @init_port, Connection) { |c| initialize_connection(c) }
-      @port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
-      logger.info "#{self.class} server started at #{url}"
-    end
+    @tcp_server = TCPServer.new(@host, @init_port)
+    @port = @tcp_server.addr[1]
+    logger.info "#{self.class} server started at #{url}"
     @status = :running
     self
   end
 
+  # Start the server and run the accept loop on a background thread.
+  # Returns immediately; caller can use #url and #port right away.
   def run_on_thread
-    raise ArgumentError, "can't run on thread, EventMachine already running" if EM.reactor_running?
-    logger.debug { "starting eventmachine on thread" }
-    cthred = Thread.current
-    @em_thread = Thread.new do
-      begin
-        EM.run { start; cthred.run }
-        logger.debug "server thread done"
-      rescue Exception => e
-        logger.debug { "unhandled exception on stub server thread: #{e.message}" }
-        trace { e.backtrace }
-        raise
-      end
-    end
-    Thread.stop
+    raise ArgumentError, "can't run on thread, server already running" if @status == :running
+    logger.debug "starting server on thread"
+    start
+    @server_thread = Thread.new { accept_loop }
     logger.debug "running on thread"
     self
   end
 
+  # Start the server and run the accept loop on the calling thread (blocking).
   def run
-    raise ArgumentError, "can't run, EventMachine already running" if EM.reactor_running?
-    @em_thread = Thread.current
-    EM.run { start }
-    logger.debug "server and event machine done"
+    raise ArgumentError, "can't run, server already running" if @status == :running
+    @server_thread = Thread.current
+    start
+    accept_loop
+    logger.debug "server and event loop done"
   end
 
-  # if on reactor thread, start shutting down but return if connections still
-  # in process, and let them disconnect when complete -- server is not really
-  # done until it's status is stopped.
-  # if not on reactor thread, wait until everything's cleaned up and stopped
+  # Stop accepting new connections, close the listening socket, and wait for
+  # the accept loop thread to mark status :stopped.
   def stop
     logger.debug "stopping server"
     @status = :stopping
-    EM.stop_server @sig
-    done if @connections.empty?
-    sleep 0.1 while @status != :stopped unless EM.reactor_thread?
+    @tcp_server.close rescue nil
+    sleep 0.05 while @status != :stopped
   end
 
   def delete_connection(conn)
     logger.debug "deleting connection"
-    fail unless EM.reactor_thread?
-    @connections.delete(conn)
-    done if @status != :running && @connections.empty?
+    @mutex.synchronize { @connections.delete(conn) }
   end
 
 end
