@@ -23,7 +23,6 @@ if ENV['COVERAGE']
 end
 
 require 'rspec'
-require 'eventmachine'
 require 'uaa/stub/uaa'
 
 RSpec.configure do |config|
@@ -42,16 +41,11 @@ module SpecHelper
     e
   end
 
-  # Runs given block on a thread or fiber and returns result.
-  # If eventmachine is running on another thread, the fiber
-  # must be on the same thread, hence EM.schedule and the
-  # restriction that the given block cannot include rspec matchers.
+  # Runs the given block and returns the result (or a captured exception).
+  # The on_fiber parameter is retained for API compatibility; with EventMachine
+  # removed it simply executes on the current thread.
   def frequest(on_fiber, &blk)
-    return capture_exception(&blk) unless on_fiber
-    result, cthred = nil, Thread.current
-    EM.schedule { Fiber.new { result = capture_exception(&blk); cthred.run }.resume }
-    Thread.stop
-    result
+    capture_exception(&blk)
   end
 
   def setup_target(opts = {})
@@ -100,4 +94,3 @@ module SpecHelper
 end
 
 end
-

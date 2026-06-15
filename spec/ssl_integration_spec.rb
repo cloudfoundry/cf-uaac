@@ -13,7 +13,6 @@
 
 require 'spec_helper'
 require 'fiber'
-require 'em-http'
 require 'uaac_cli'
 require 'uaa/stub/server'
 
