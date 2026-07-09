@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Type of version bump (major, minor, or patch)'
+        required: true
+        type: choice
+        default: 'patch'
+        options:
+          - major
+          - minor
+          - patch
+
+run-name: "Ship ${{ inputs.bump_type }} Release"
+
+concurrency:
+  group: serialize-releases-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release gem and publish to RubyGems.org
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: '3.3'
+
+      - name: Setup Git
+        run: |
+          git config --global user.email "identity-uaa+ci@pivotal.io"
+          git config --global user.name "UAA Identity Bot"
+
+      - name: Bump version from last tag
+        id: bump_version
+        run: |
+          prev_tag=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          prev_tag=${prev_tag:-v0.0.0}
+          version=${prev_tag#v}
+          new_version=$(npx -y semver -i ${{ inputs.bump_type }} "${version}")
+
+          echo "${new_version}" > version.txt
+          git add version.txt
+          git commit -m "Bump version to ${new_version}"
+          git push origin HEAD:${{ github.ref_name }}
+
+          echo "version=${new_version}" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=${prev_tag}" >> "$GITHUB_OUTPUT"
+          echo "🤔 *Previous tag: ${prev_tag}*" >> $GITHUB_STEP_SUMMARY
+          echo "### 👷 Building ${new_version}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Configure RubyGems credentials
+        run: |
+          mkdir -p ~/.gem
+          printf -- "---\n:rubygems_api_key: %s\n" "${RUBYGEMS_AUTH_TOKEN}" > ~/.gem/credentials
+          chmod 600 ~/.gem/credentials
+        env:
+          RUBYGEMS_AUTH_TOKEN: ${{ secrets.RUBYGEMS_AUTH_TOKEN }}
+
+      - name: Release gem
+        run: bundle exec rake release
+
+      - name: Create GitHub release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${{ steps.bump_version.outputs.version }}
+          prev_tag=${{ steps.bump_version.outputs.prev_tag }}
+          tag="v${version}"
+
+          if git rev-parse -q --verify "refs/tags/${prev_tag}"; then
+            change_range="${prev_tag}...${tag}"
+          else
+            change_range="${tag}"
+          fi
+          git log --pretty='* %s' ${change_range} > changelog.md
+
+          html_url=$(gh release create "${tag}" \
+            "pkg/cf-uaac-${version}.gem" \
+            --title "${tag}" \
+            --notes-file changelog.md)
+          echo "html_url=${html_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          echo "### 🎉 Created release ${{ steps.bump_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 GitHub Release URL: ${{ steps.create_release.outputs.html_url }}" >> $GITHUB_STEP_SUMMARY
