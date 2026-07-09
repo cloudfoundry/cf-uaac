@@ -11,7 +11,7 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-source 'http://rubygems.org'
+source 'https://rubygems.org'
 
 # Specify your gem's dependencies in cf-uaac.gemspec
 gemspec
