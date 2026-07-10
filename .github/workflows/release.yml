@@ -7,7 +7,7 @@ on:
         description: 'Type of version bump (major, minor, or patch)'
         required: true
         type: choice
-        default: 'patch'
+        default: 'minor'
         options:
           - major
           - minor
