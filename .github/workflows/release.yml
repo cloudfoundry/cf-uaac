@@ -57,10 +57,6 @@ jobs:
           new_version=$(npx -y semver -i ${{ inputs.bump_type }} "${version}")
 
           echo "${new_version}" > version.txt
-          git add version.txt
-          git commit -m "Bump version to ${new_version}"
-          git push origin HEAD:${{ github.ref_name }}
-
           echo "version=${new_version}" >> "$GITHUB_OUTPUT"
           echo "prev_tag=${prev_tag}" >> "$GITHUB_OUTPUT"
           echo "🤔 *Previous tag: ${prev_tag}*" >> $GITHUB_STEP_SUMMARY
@@ -75,7 +71,7 @@ jobs:
           RUBYGEMS_AUTH_TOKEN: ${{ secrets.RUBYGEMS_AUTH_TOKEN }}
 
       - name: Release gem
-        run: bundle exec rake release
+        run: bundle exec rake build release:rubygem_push
 
       - name: Create GitHub release
         id: create_release
