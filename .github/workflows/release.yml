@@ -48,6 +48,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
+
       - name: Bump version from last tag
         id: bump_version
         run: |
@@ -83,9 +84,9 @@ jobs:
           tag="v${version}"
 
           if git rev-parse -q --verify "refs/tags/${prev_tag}"; then
-            change_range="${prev_tag}...${tag}"
+            change_range="${prev_tag}...HEAD"
           else
-            change_range="${tag}"
+            change_range="HEAD"
           fi
           git log --pretty='* %s' "${change_range}" > changelog.md
 
